@@ -1,0 +1,37 @@
+---
+title: "Project I, BIOTAT 620W2022"
+author: "Team Hot Pot; Xueting Tao, Isabel Gomez"
+date: "2/14/2022"
+output: pdf_document
+---
+
+
+# Title:  Give a title of project I. 
+# Author:  Xueting Tao, Isabel Gomez
+
+# Abstract:  Write a high-level summary of project I.  
+
+# Introduction: 
+This section should include objective, hypothesis, and motivation of your project, followed by a brief discussion why your data are relevant to your proposed study.  In addition, it presents an outline of your data analysis as well as some major findings.   
+
+# Data Description: 
+This section covers background of data collection, list of variables (see a separate file), and characterization of a team.  It is important to create the so-called Table 1 
+that lists summary descriptive statistics for all collected variables to describe the team.  You may also consider using figures (e.g. boxplot, histogram, scatterplot, time series plot, ACF plot and circular plot of 24 hours), if necessary,  to display distributions of some variables for which you like to show more detailed information.  
+# Data Preprocessing: 
+This section discusses issues related to data merging from individual data sheets into a group data sheet, data cleaning and validation, data harmonization in data merging, variable transformation and so on.  
+
+#Federated Learning: 
+Based on your study objective and hypothesis given in the Introduction section as well as preliminary data analysis in the Data Description section, in this case you choose an outcome variable y (e.g. daily social screen time), and a predictor x (e.g. number of pickups), to run a linear regression y ~ x via the federated learning method.  Here, each device user represents a data source where raw data cannot be shared, but summary statistics are allowed to be shared. (a) First, establish a federated learning procedure for the calculation of regression parameters (intercept, slope and variance) and their standard errors.  Second, (b) describe a distributed computing platform to implement your federated learning machinery developed in part (a).  (c) Third, report your analysis results.  
+
+
+# Meta Learning: 
+You may now extend the above federated learning based on the simple linear regression with one covariate to the case of multiple regression with many covariates (e.g. the number of pickups and duration per use etc.), that is, y ~ x1 + … + xp. The meta learning allows you to establish a distributed computing platform to carry out the federated learning without sharing individual data.  Demonstrate your meta learning platform by one example with multiple predictors.  
+# Confirmation analysis: 
+Note that your team has a combined data sheet. Thus, you may repeat the above analyses of the simple regression and multiple regression using the combined raw data to obtain the oracle results.  Compare and confirm numerically if the results from the federated learning method are the same as the oracle results.  
+Conclusion & Discussion: Summarize your main contributions and findings in this project. What was your experience of data analysis, especially in the aspect of team collaboration? What have you found to be most interesting and surprising? What are the limitations of your study (e.g. the inclusion of confounding factors in the analysis)? What is the future work? 
+# Acknowledgement: 
+You may write some additional notes related to help given by people outside of the authorship and roles that individual authors played in the project.  
+# Appendix: 
+You can always create an appendix to include more detailed supplementary information of your project if necessary. 
+Format Required by the Project 
+Each project should be prepared with one-inch margins, in 12-point size letters and no more than 25 lines per page, double-spaced throughout. The first page should include a  title, authorship, key phrases, and a one-paragraph abstract. The abstract should not exceed 200 words. Each project should not exceed 8 pages, including title, authors, abstract, key phrases, figures and tables as well as references. You are allowed to submit an appendix that contains some technical details, R code, and additional analysis results.  The appendix should not exceed 5 pages.   
