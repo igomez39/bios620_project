@@ -1,0 +1,190 @@
+---
+title: "Project I, BIOTAT 620W2022"
+author: "Team Hot Pot; Xueting Tao, Isabel Gomez"
+date: "2/14/2022"
+output: pdf_document
+---
+
+
+# Title:  Give a title of project I. 
+# Author:  Xueting Tao, Isabel Gomez
+
+# Abstract:  Write a high-level summary of project I.  
+
+# Introduction: 
+This section should include objective, hypothesis, and motivation of your project, followed by a brief discussion why your data are relevant to your proposed study.  In addition, it presents an outline of your data analysis as well as some major findings.   
+
+# Data Description: 
+This section covers background of data collection, list of variables (see a separate file), and characterization of a team.  It is important to create the so-called Table 1 
+that lists summary descriptive statistics for all collected variables to describe the team.  You may also consider using figures (e.g. boxplot, histogram, scatterplot, time series plot, ACF plot and circular plot of 24 hours), if necessary,  to display distributions of some variables for which you like to show more detailed information.  
+# Data Preprocessing: 
+This section discusses issues related to data merging from individual data sheets into a group data sheet, data cleaning and validation, data harmonization in data merging, variable transformation and so on.  
+
+#Federated Learning: 
+Based on your study objective and hypothesis given in the Introduction section as well as preliminary data analysis in the Data Description section, in this case you choose an outcome variable y (e.g. daily social screen time), and a predictor x (e.g. number of pickups), to run a linear regression y ~ x via the federated learning method.  Here, each device user represents a data source where raw data cannot be shared, but summary statistics are allowed to be shared. (a) First, establish a federated learning procedure for the calculation of regression parameters (intercept, slope and variance) and their standard errors.  Second, (b) describe a distributed computing platform to implement your federated learning machinery developed in part (a).  (c) Third, report your analysis results.  
+
+## a) First, establish a federated learning procedure for the calculation of regression parameters (intercept, slope and variance) and their standard errors.
+
+```{r}
+rm(list=ls(all=TRUE))  #same to clear all in stata
+cat("\014")
+
+library(xlsx)
+library(dplyr)
+library(lubridate)
+#Read in data seperately:
+data_D1=read.xlsx("data/hotpot_screen_data.xlsx",sheetName ="isgomez")
+data_D2=read.xlsx("data/hotpot_screen_data.xlsx",sheetName ="xuetao")
+
+#Transfer the time into minutes:
+data_D1=data_D1 %>%
+  mutate(Pickup.1st.minute=(hour(Pickup.1st)*60+minute(Pickup.1st))) %>%
+  mutate(pre_Tot.Scr.Time=lag(Tot.Scr.Time),
+         XY=pre_Tot.Scr.Time*Pickup.1st.minute,
+         Xsquare=pre_Tot.Scr.Time^2)
+data_D2=data_D2 %>%
+  mutate(Pickup.1st.minute=(hour(Pickup.1st)*60+minute(Pickup.1st))) %>%
+  mutate(pre_Tot.Scr.Time=lag(Tot.Scr.Time),
+         XY=pre_Tot.Scr.Time*Pickup.1st.minute,
+         Xsquare=pre_Tot.Scr.Time^2)
+data_D1=data_D1[complete.cases(data_D1),]
+data_D2=data_D2[complete.cases(data_D2),]
+
+```
+
+
+Let D1 denote the data from team memeber 1 (Isabel) and D2 denote the data from the team memeber 2(Xueting). Let Y denote the time of first pick-up the following day and X denote the total screen time for the previous day. Following is the formula we used for the linear regression:
+
+Overall Model:
+
+$Y_i=\beta_0+\beta_1*X_i+\epsilon_i$
+
+From the principle of Simple linear regression, we could get following formula for the regression coeffcients:
+
+$\hat{\beta_1}=\frac{SSXY(D1\cup D2)}{SSX(D1 \cup D2)}$
+$\hat{\beta_0}=\overline{Y}(D1 \cup D2)-\hat{\beta_1}*\overline{X}(D1 \cup D2)$
+
+Overall SSXY and SSX could be obtained by the following way:
+
+$ SSXY(D1 \cup D2)=(n_1+n_2)*\left \{ \overline{XY}(D1 \cup D2)-\overline{X}(D1 \cup D2)*\overline{Y}(D1 \cup D2) \right \}$
+$ SSX(D1 \cup D2)= (n_1+n_2)*\left \{ \overline{X^2}(D1 \cup D2)-{\overline{X}}^2(D1 \cup D2)\right \}$
+$ \overline{XY}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{XY}(D1)+\frac{n_2}{n_1+n_2}*\overline{XY}(D2)$
+$ \overline{X}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X}(D1)+\frac{n_2}{n_1+n_2}*\overline{X}(D2)$
+$ \overline{Y}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{Y}(D1)+\frac{n_2}{n_1+n_2}*\overline{Y}(D2)$
+$ \overline{X^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X^2}(D2)$
+
+
+Also, we learned that the Standard Diviation for $\beta_1$ is defined as the following:
+$ SD(\hat{\beta_1})=\sqrt{\hat{Var(\hat{\beta_1})}}=\sqrt{\frac{MSE(D1 \cup D2)}{SSX(D1 \cup D2)}}$
+$ SD(\hat{\beta_0})=\sqrt{\hat{Var(\hat{\beta_0})}}=\sqrt{MSE*(\frac{1}{n}+\frac{\overline{X}^2(D1 \cup D2)}{SSX(D1 \cup D2)}})$
+
+$ MSE(D1 \cup D2)$ could be obtained by the following formula:
+$ MSE(D1 \cup D2)=\frac{SSE(D1)+SSE(D2)}{n_1+n_2-2}$
+
+To test Whether the slope ($\beta_1$) is significant from 0, we use the following t-test:
+$\frac{\hat{\beta_1}-\beta_1}{\sqrt{\frac{MSE(D1 \cup D2)}{SSX(D1 \cup D2)}}}\sim t_{n_1+n_2-2}$
+where $\beta_1=0$
+
+
+## (b) describe a distributed computing platform to implement your federated learning machinery developed in part (a)
+
+
+
+
+## (c) Third, report your analysis results. 
+
+```{r}
+
+
+n1=nrow(data_D1)
+n2=nrow(data_D2)
+#Indivdual mean
+XY_D1_bar=mean(data_D1$XY,na.rm = T)
+XY_D2_bar=mean(data_D2$XY,na.rm = T)
+X_D1_bar=mean(data_D1$pre_Tot.Scr.Time,na.rm = T)
+X_D2_bar=mean(data_D2$pre_Tot.Scr.Time,na.rm = T)
+Y_D1_bar=mean(data_D1$Pickup.1st.minute,na.rm = T)
+Y_D2_bar=mean(data_D2$Pickup.1st.minute,na.rm = T)
+Xsquare_D1_bar=mean(data_D1$Xsquare,na.rm = T)
+Xsquare_D2_bar=mean(data_D2$Xsquare,na.rm = T)
+#Overall mean:
+XY_D1D2_bar=n1/(n1+n2)*XY_D1_bar+n2/(n1+n2)*XY_D2_bar
+Y_D1D2_bar=n1/(n1+n2)*Y_D1_bar+n2/(n1+n2)*Y_D2_bar
+X_D1D2_bar=n1/(n1+n2)*X_D1_bar+n2/(n1+n2)*X_D2_bar
+Xsquare_D1D2_bar=n1/(n1+n2)*Xsquare_D1_bar+n2/(n1+n2)*Xsquare_D2_bar
+#SSX and SSXY:
+SSXY_D1D2=(n1+n2)*(XY_D1D2_bar-X_D1D2_bar*Y_D1D2_bar)
+SSX_D1D2=(n1+n2)*(Xsquare_D1D2_bar-(X_D1D2_bar)^2)
+beta1_hat=SSXY_D1D2/SSX_D1D2
+beta0_hat=Y_D1D2_bar-beta1_hat*X_D1D2_bar
+#Pass the estimates back to the individual dataset to get the SSE:
+data_D1=data_D1 %>%
+  mutate(Yhat=beta0_hat+beta1_hat*pre_Tot.Scr.Time) %>%
+  mutate(Ydiff_square=(Yhat-Pickup.1st.minute)^2)
+data_D2=data_D2 %>%
+  mutate(Yhat=beta0_hat+beta1_hat*pre_Tot.Scr.Time) %>%
+  mutate(Ydiff_square=(Yhat-Pickup.1st.minute)^2)
+
+#Calculated SSE seperately
+SSE_D1=sum(data_D1$Ydiff_square,na.rm = T)
+SSE_D2=sum(data_D2$Ydiff_square,na.rm = T)
+
+#Calculate MSE:
+MSE=(SSE_D1+SSE_D2)/(n1+n2)
+
+#Calculate SE(beta1_hat):
+SD_beta1_hat=sqrt(MSE/SSX_D1D2)
+SD_beta0_hat=sqrt(MSE*(1/(n1+n2)+(X_D1D2_bar)^2/SSX_D1D2))
+
+beta1_hat
+SD_beta1_hat
+beta0_hat
+SD_beta0_hat
+
+beta1_tscore=beta1_hat/SD_beta1_hat
+beta1_p=2*pt(beta1_tscore, n1+n2-2, lower.tail = FALSE)
+
+```
+
+From the result above, we found that the estimated $\hat{\beta_1}$ is `r beta1_hat`, with SD=`r SD_beta1_hat`. The calculated P value is `r beta1_p` which is more than 0.05, which is non-significant. 
+This results shows that there might be positive relationship between the first pick-up and the total screen time in the previous day but the relationship is not significant.
+
+# Meta Learning: 
+You may now extend the above federated learning based on the simple linear regression with one covariate to the case of multiple regression with many covariates (e.g. the number of pickups and duration per use etc.), that is, y ~ x1 + … + xp. The meta learning allows you to establish a distributed computing platform to carry out the federated learning without sharing individual data.  Demonstrate your meta learning platform by one example with multiple predictors.  
+# Confirmation analysis: 
+Note that your team has a combined data sheet. Thus, you may repeat the above analyses of the simple regression and multiple regression using the combined raw data to obtain the oracle results.  Compare and confirm numerically if the results from the federated learning method are the same as the oracle results.  
+
+
+## Confirm the analysis:
+
+### Federal learning:
+```{r}
+data_overall=read.xlsx("data/hotpot_screen_data.xlsx",sheetName ="Overall")
+
+#Transfer the time into minutes:
+data_overall=rbind(data_D1,data_D2)
+
+#Regression
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time,data=data_overall)
+summary(fit)$coef
+
+beta1_hat
+beta0_hat
+
+SD_beta1_hat
+SD_beta0_hat
+
+
+```
+
+The coefficients calculated in the federal learning is the same as the one calcuated using overall data. However, the SD is a little bit difference. This might due to the significant point error.
+
+
+
+Conclusion & Discussion: Summarize your main contributions and findings in this project. What was your experience of data analysis, especially in the aspect of team collaboration? What have you found to be most interesting and surprising? What are the limitations of your study (e.g. the inclusion of confounding factors in the analysis)? What is the future work? 
+# Acknowledgement: 
+You may write some additional notes related to help given by people outside of the authorship and roles that individual authors played in the project.  
+# Appendix: 
+You can always create an appendix to include more detailed supplementary information of your project if necessary. 
+Format Required by the Project 
+Each project should be prepared with one-inch margins, in 12-point size letters and no more than 25 lines per page, double-spaced throughout. The first page should include a  title, authorship, key phrases, and a one-paragraph abstract. The abstract should not exceed 200 words. Each project should not exceed 8 pages, including title, authors, abstract, key phrases, figures and tables as well as references. You are allowed to submit an appendix that contains some technical details, R code, and additional analysis results.  The appendix should not exceed 5 pages.   
