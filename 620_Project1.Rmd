@@ -129,6 +129,7 @@ kable(summary_data2, booktabs = TRUE,  caption = "Screen Data Summary Descriptiv
 Figure 1 displays the pairwise scatter plots of total screen time, social screen time and number of pickups for the group. There is moderately weak significant negative correlation between total screen time and number of pickups (Pearson correlation = -0.292). Social screen time has a weak positive correlation with both total screen time (pearson correlation = 0.035) and number of pickups (pearson correlation = 0.181), both of these are non-significant. 
 
 
+
 ```{r, fig.height=5, fig.width=7,fig.cap = "Pairwise scatterplot of total screen time, social screen time and total pickup for team hotpot."}
 #CORRELATION PLOTS 
 ggpairs(screen_data,columns = c("Tot.Scr.Time", "Tot.Soc.Time", "Pickups"),
@@ -222,8 +223,40 @@ social.total = ggplot(screen_data, aes(x = weekday, y = Avg.Social.ST.wkd)) +
 grid.arrange(total,social,pickups,weekday.total,social.total, ncol = 2, nrow = 3)
 ```
 
+
+```{r}
+screen_data = screen_data %>% group_by(Date) %>% mutate(Avg.Pickup.1st = mean(Pickup.1st))
+screen_data = screen_data %>% mutate(Pickup.1st.angular = (hour(Avg.Pickup.1st)*60+minute(Avg.Pickup.1st)) / (24*60)*360)
+
+screen_data_isgomez = screen_data_isgomez %>% mutate(Pickup.1st.angular = (hour(Pickup.1st)*60+minute(Pickup.1st)) / (24*60)*360)
+screen_data_xuetao = screen_data_xuetao %>% mutate(Pickup.1st.angular = (hour(Pickup.1st)*60+minute(Pickup.1st)) / (24*60)*360)
+```
+
+```{r, results = "hide"}
+first.pickup.cir.hotpot = circular(screen_data$Pickup.1st.angular, units = "degrees", template = "clock24")
+
+first.pickup.cir.xuetao = circular(screen_data_xuetao$Pickup.1st.angular, units = "degrees", template = "clock24")
+
+first.pickup.cir.isgomez = circular(screen_data_isgomez$Pickup.1st.angular, units = "degrees", template = "clock24")
+
+```
+
+
+Figure 2 shows the first pick-up time for each member, along with the average of all the participants together. From this figure we can see that the most popular pickup time is around 7:30am. Whereas if we look at the individual pickup time, isgomez has a more variable pickup time with the earliest being at 8:30am and xuetao has a more consolidated pickup time around 7:30am. 
+```{r, results = "hide"}
+
+plot(first.pickup.cir.hotpot, stack=TRUE, bins=24, col = "blue")
+plot(first.pickup.cir.isgomez, stack=TRUE, bins=24, col = "blue")
+plot(first.pickup.cir.xuetao, stack=TRUE, bins=24, col = "blue")
+```
+
+
+
+
+
 # Data Preprocessing: 
 This section discusses issues related to data merging from individual data sheets into a group data sheet, data cleaning and validation, data harmonization in data merging, variable transformation and so on.  
+
 
 #Federated Learning: 
 Based on your study objective and hypothesis given in the Introduction section as well as preliminary data analysis in the Data Description section, in this case you choose an outcome variable y (e.g. daily social screen time), and a predictor x (e.g. number of pickups), to run a linear regression y ~ x via the federated learning method.  Here, each device user represents a data source where raw data cannot be shared, but summary statistics are allowed to be shared. (a) First, establish a federated learning procedure for the calculation of regression parameters (intercept, slope and variance) and their standard errors.  Second, (b) describe a distributed computing platform to implement your federated learning machinery developed in part (a).  (c) Third, report your analysis results.  
@@ -231,12 +264,48 @@ Based on your study objective and hypothesis given in the Introduction section a
 
 # Meta Learning: 
 You may now extend the above federated learning based on the simple linear regression with one covariate to the case of multiple regression with many covariates (e.g. the number of pickups and duration per use etc.), that is, y ~ x1 + … + xp. The meta learning allows you to establish a distributed computing platform to carry out the federated learning without sharing individual data.  Demonstrate your meta learning platform by one example with multiple predictors.  
+
+
 # Confirmation analysis: 
 Note that your team has a combined data sheet. Thus, you may repeat the above analyses of the simple regression and multiple regression using the combined raw data to obtain the oracle results.  Compare and confirm numerically if the results from the federated learning method are the same as the oracle results.  
 Conclusion & Discussion: Summarize your main contributions and findings in this project. What was your experience of data analysis, especially in the aspect of team collaboration? What have you found to be most interesting and surprising? What are the limitations of your study (e.g. the inclusion of confounding factors in the analysis)? What is the future work? 
+
+
 # Acknowledgement: 
 You may write some additional notes related to help given by people outside of the authorship and roles that individual authors played in the project.  
+
+
+
 # Appendix: 
 You can always create an appendix to include more detailed supplementary information of your project if necessary. 
 Format Required by the Project 
-Each project should be prepared with one-inch margins, in 12-point size letters and no more than 25 lines per page, double-spaced throughout. The first page should include a  title, authorship, key phrases, and a one-paragraph abstract. The abstract should not exceed 200 words. Each project should not exceed 8 pages, including title, authors, abstract, key phrases, figures and tables as well as references. You are allowed to submit an appendix that contains some technical details, R code, and additional analysis results.  The appendix should not exceed 5 pages.   
+Each project should be prepared with one-inch margins, in 12-point size letters and no more than 25 lines per page, double-spaced throughout. The first page should include a  title, authorship, key phrases, and a one-paragraph abstract. The abstract should not exceed 200 words. Each project should not exceed 8 pages, including title, authors, abstract, key phrases, figures and tables as well as references. You are allowed to submit an appendix that contains some technical details, R code, and additional analysis results.  The appendix should not exceed 5 pages. 
+
+
+
+
+```{r, results = "hide"}
+
+#convert angular data to be on interval -pi to pi
+#sct$Pickup.1st.von.mis = sct$Pickup.1st.angular*2*pi/360 - pi
+screen_data$Pickup.1st.radian = -(screen_data$Pickup.1st.angular)*(pi/180)
+
+
+  von = mle.vonmises(screen_data$Pickup.1st.radian)
+```
+
+
+```{r, echo = TRUE, results = "hide", eval = FALSE}
+ff <- function(x) dvonmises(x, mu=circular(2*pi-2.04), kappa=13.44)
+curve.circular(ff, join=TRUE, xlim=c(-2.3, 1),
+  main="Density of a VonMises Distribution \n mu=2.337, kappa=3.941")
+#plot(density.circular(density_V, bw = 3))
+```
+
+
+
+```{r}
+error = diff(screen_data$Avg.Social.ST,lag = 1)
+acf(error)
+```
+
