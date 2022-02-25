@@ -12,26 +12,33 @@ output: pdf_document
 # Abstract:  Write a high-level summary of project I.  
 
 # Introduction: 
-This section should include objective, hypothesis, and motivation of your project, followed by a brief discussion why your data are relevant to your proposed study.  In addition, it presents an outline of your data analysis as well as some major findings.   
+
+
 
 # Data Description: 
-This section covers background of data collection, list of variables (see a separate file), and characterization of a team.  It is important to create the so-called Table 1 
-that lists summary descriptive statistics for all collected variables to describe the team.  You may also consider using figures (e.g. boxplot, histogram, scatterplot, time series plot, ACF plot and circular plot of 24 hours), if necessary,  to display distributions of some variables for which you like to show more detailed information.  
+
+
 # Data Preprocessing: 
-This section discusses issues related to data merging from individual data sheets into a group data sheet, data cleaning and validation, data harmonization in data merging, variable transformation and so on.  
+
+* Since we all from the first year master student, thus we would like to define Monday to Thursday as school day and Friday to Sunday as non-school day.
+
+
 
 #Federated Learning: 
-Based on your study objective and hypothesis given in the Introduction section as well as preliminary data analysis in the Data Description section, in this case you choose an outcome variable y (e.g. daily social screen time), and a predictor x (e.g. number of pickups), to run a linear regression y ~ x via the federated learning method.  Here, each device user represents a data source where raw data cannot be shared, but summary statistics are allowed to be shared. (a) First, establish a federated learning procedure for the calculation of regression parameters (intercept, slope and variance) and their standard errors.  Second, (b) describe a distributed computing platform to implement your federated learning machinery developed in part (a).  (c) Third, report your analysis results.  
 
-## a) First, establish a federated learning procedure for the calculation of regression parameters (intercept, slope and variance) and their standard errors.
 
-```{r}
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+
 rm(list=ls(all=TRUE))  #same to clear all in stata
 cat("\014")
 
 library(xlsx)
 library(dplyr)
 library(lubridate)
+library(stringr)
+library(stringi)
+library(kableExtra)
 #Read in data seperately:
 data_D1=read.xlsx("data/hotpot_screen_data.xlsx",sheetName ="isgomez")
 data_D2=read.xlsx("data/hotpot_screen_data.xlsx",sheetName ="xuetao")
@@ -40,73 +47,100 @@ data_D2=read.xlsx("data/hotpot_screen_data.xlsx",sheetName ="xuetao")
 data_D1=data_D1 %>%
   mutate(Pickup.1st.minute=(hour(Pickup.1st)*60+minute(Pickup.1st))) %>%
   mutate(pre_Tot.Scr.Time=lag(Tot.Scr.Time),
-         XY=pre_Tot.Scr.Time*Pickup.1st.minute,
-         Xsquare=pre_Tot.Scr.Time^2)
+         pre_Tot.Soc.Time=lag(Tot.Soc.Time),
+         X1=pre_Tot.Scr.Time,
+         Schoolday=ifelse(Day %in% c("Mo","Tu","We","Th"),1,0),
+         X2=Pickups,
+         X1Y=X1*Pickup.1st.minute,
+         X2Y=X2*Pickup.1st.minute,
+         X1square=X1^2,
+         X2square=X2^2,
+         X1X2=X1*X2)
 data_D2=data_D2 %>%
   mutate(Pickup.1st.minute=(hour(Pickup.1st)*60+minute(Pickup.1st))) %>%
   mutate(pre_Tot.Scr.Time=lag(Tot.Scr.Time),
-         XY=pre_Tot.Scr.Time*Pickup.1st.minute,
-         Xsquare=pre_Tot.Scr.Time^2)
+         pre_Tot.Soc.Time=lag(Tot.Soc.Time),
+         X1=pre_Tot.Scr.Time,
+         Schoolday=ifelse(Day %in% c("Mo","Tu","We","Th"),1,0),
+         X2=Pickups,
+         X1Y=X1*Pickup.1st.minute,
+         X2Y=X2*Pickup.1st.minute,
+         X1square=X1^2,
+         X2square=X2^2,
+         X1X2=X1*X2)
 data_D1=data_D1[complete.cases(data_D1),]
 data_D2=data_D2[complete.cases(data_D2),]
 
 ```
 
-
-Let D1 denote the data from team memeber 1 (Isabel) and D2 denote the data from the team memeber 2(Xueting). Let Y denote the time of first pick-up the following day and X denote the total screen time for the previous day. Following is the formula we used for the linear regression:
+Let D1 denote the data from team member 1 (Isabel) and D2 denote the data from the team member 2(Xueting). Let Y denote the time of first pick-up the following day and X denote the total screen time for the previous day. Following is the formula we used for the linear regression:
 
 Overall Model:
 
-$Y_i=\beta_0+\beta_1*X_i+\epsilon_i$
+$Y_i=\beta_0+\beta_1*X_{i1}+\epsilon_i$
 
-From the principle of Simple linear regression, we could get following formula for the regression coeffcients:
+where :
 
-$\hat{\beta_1}=\frac{SSXY(D1\cup D2)}{SSX(D1 \cup D2)}$
-$\hat{\beta_0}=\overline{Y}(D1 \cup D2)-\hat{\beta_1}*\overline{X}(D1 \cup D2)$
+* $Y_i$ refers to First Pickup time.  
+ 
+* $X_{i1}$ refers to Total Screen time in the previous day
+
+
+From the principle of Simple linear regression, we could get following formula for the regression coefficients:
+
+* $\hat{\beta_1}=\frac{SSXY(D1\cup D2)}{SSX(D1 \cup D2)}$ 
+
+* $\hat{\beta_0}=\overline{Y}(D1 \cup D2)-\hat{\beta_1}*\overline{X}(D1 \cup D2)$ 
 
 Overall SSXY and SSX could be obtained by the following way:
 
-$ SSXY(D1 \cup D2)=(n_1+n_2)*\left \{ \overline{XY}(D1 \cup D2)-\overline{X}(D1 \cup D2)*\overline{Y}(D1 \cup D2) \right \}$
-$ SSX(D1 \cup D2)= (n_1+n_2)*\left \{ \overline{X^2}(D1 \cup D2)-{\overline{X}}^2(D1 \cup D2)\right \}$
-$ \overline{XY}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{XY}(D1)+\frac{n_2}{n_1+n_2}*\overline{XY}(D2)$
-$ \overline{X}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X}(D1)+\frac{n_2}{n_1+n_2}*\overline{X}(D2)$
-$ \overline{Y}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{Y}(D1)+\frac{n_2}{n_1+n_2}*\overline{Y}(D2)$
-$ \overline{X^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X^2}(D2)$
+* $SSXY(D1 \cup D2)=(n_1+n_2)*\left \{ \overline{XY}(D1 \cup D2)-\overline{X}(D1 \cup D2)*\overline{Y}(D1 \cup D2) \right \}$ 
 
+* $SSX(D1 \cup D2)= (n_1+n_2)*\left \{ \overline{X^2}(D1 \cup D2)-{\overline{X}}^2(D1 \cup D2)\right \}$ 
+
+* $\overline{XY}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{XY}(D1)+\frac{n_2}{n_1+n_2}*\overline{XY}(D2)$ 
+
+* $\overline{X}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X}(D1)+\frac{n_2}{n_1+n_2}*\overline{X}(D2)$ 
+
+* $\overline{Y}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{Y}(D1)+\frac{n_2}{n_1+n_2}*\overline{Y}(D2)$ 
+
+* $\overline{X^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X^2}(D2)$ 
 
 Also, we learned that the Standard Diviation for $\beta_1$ is defined as the following:
-$ SD(\hat{\beta_1})=\sqrt{\hat{Var(\hat{\beta_1})}}=\sqrt{\frac{MSE(D1 \cup D2)}{SSX(D1 \cup D2)}}$
-$ SD(\hat{\beta_0})=\sqrt{\hat{Var(\hat{\beta_0})}}=\sqrt{MSE*(\frac{1}{n}+\frac{\overline{X}^2(D1 \cup D2)}{SSX(D1 \cup D2)}})$
 
-$ MSE(D1 \cup D2)$ could be obtained by the following formula:
-$ MSE(D1 \cup D2)=\frac{SSE(D1)+SSE(D2)}{n_1+n_2-2}$
+* $SD(\hat{\beta_1})=\sqrt{\hat{Var(\hat{\beta_1})}}=\sqrt{\frac{MSE(D1 \cup D2)}{SSX(D1 \cup D2)}}$ 
+
+* $SD(\hat{\beta_0})=\sqrt{\hat{Var(\hat{\beta_0})}}=\sqrt{MSE*(\frac{1}{n}+\frac{\overline{X}^2(D1 \cup D2)}{SSX(D1 \cup D2)}})$ 
+
+$MSE(D1 \cup D2)$ could be obtained by the following formula: 
+
+* $MSE(D1 \cup D2)=\frac{SSE(D1)+SSE(D2)}{n_1+n_2-2}$ 
+
+* $SSE=\sum_{i=1}^{n}(Y_i-\hat{Y_i})^2$ 
 
 To test Whether the slope ($\beta_1$) is significant from 0, we use the following t-test:
-$\frac{\hat{\beta_1}-\beta_1}{\sqrt{\frac{MSE(D1 \cup D2)}{SSX(D1 \cup D2)}}}\sim t_{n_1+n_2-2}$
+
+* $\frac{\hat{\beta_1}-\beta_1}{\sqrt{\frac{MSE(D1 \cup D2)}{SSX(D1 \cup D2)}}}\sim t_{n_1+n_2-2}$ 
+
 where $\beta_1=0$
 
 
-## (b) describe a distributed computing platform to implement your federated learning machinery developed in part (a)
+Following is the result utiliziing the method above:
 
-
-
-
-## (c) Third, report your analysis results. 
-
-```{r}
+```{r, echo=FALSE,error=FALSE,message=FALSE}
 
 
 n1=nrow(data_D1)
 n2=nrow(data_D2)
 #Indivdual mean
-XY_D1_bar=mean(data_D1$XY,na.rm = T)
-XY_D2_bar=mean(data_D2$XY,na.rm = T)
+XY_D1_bar=mean(data_D1$X1Y,na.rm = T)
+XY_D2_bar=mean(data_D2$X1Y,na.rm = T)
 X_D1_bar=mean(data_D1$pre_Tot.Scr.Time,na.rm = T)
 X_D2_bar=mean(data_D2$pre_Tot.Scr.Time,na.rm = T)
 Y_D1_bar=mean(data_D1$Pickup.1st.minute,na.rm = T)
 Y_D2_bar=mean(data_D2$Pickup.1st.minute,na.rm = T)
-Xsquare_D1_bar=mean(data_D1$Xsquare,na.rm = T)
-Xsquare_D2_bar=mean(data_D2$Xsquare,na.rm = T)
+Xsquare_D1_bar=mean(data_D1$X1square,na.rm = T)
+Xsquare_D2_bar=mean(data_D2$X1square,na.rm = T)
 #Overall mean:
 XY_D1D2_bar=n1/(n1+n2)*XY_D1_bar+n2/(n1+n2)*XY_D2_bar
 Y_D1D2_bar=n1/(n1+n2)*Y_D1_bar+n2/(n1+n2)*Y_D2_bar
@@ -130,19 +164,45 @@ SSE_D1=sum(data_D1$Ydiff_square,na.rm = T)
 SSE_D2=sum(data_D2$Ydiff_square,na.rm = T)
 
 #Calculate MSE:
-MSE=(SSE_D1+SSE_D2)/(n1+n2)
+MSE=(SSE_D1+SSE_D2)/(n1+n2-2)
 
 #Calculate SE(beta1_hat):
 SD_beta1_hat=sqrt(MSE/SSX_D1D2)
 SD_beta0_hat=sqrt(MSE*(1/(n1+n2)+(X_D1D2_bar)^2/SSX_D1D2))
 
-beta1_hat
-SD_beta1_hat
-beta0_hat
-SD_beta0_hat
-
+#T score and p value
 beta1_tscore=beta1_hat/SD_beta1_hat
 beta1_p=2*pt(beta1_tscore, n1+n2-2, lower.tail = FALSE)
+
+beta0_tscore=beta0_hat/SD_beta0_hat
+beta0_p=2*pt(beta0_tscore, n1+n2-2, lower.tail = FALSE)
+
+#95% CI
+beta1_ul=format(beta1_hat+beta1_tscore*SD_beta1_hat,digits=2)
+beta1_ll=format(beta1_hat-beta1_tscore*SD_beta1_hat,digits=2)
+
+beta0_ul=format(beta1_hat+beta0_tscore*SD_beta0_hat,digits=2)
+beta0_ll=format(beta1_hat-beta0_tscore*SD_beta0_hat,digits=2)
+
+#Output result in a table:
+betalist=format(round(c(beta0_hat,beta1_hat),4))
+sdlist=format(round(c(SD_beta0_hat,SD_beta1_hat),4))
+tscorelist=format(round(c(beta0_tscore,beta1_tscore),4))
+pvaluelist=format(round(c(beta0_p,beta1_p),3))
+
+pvaluelist=str_replace_all(pvaluelist,"0.000","<0.001")
+
+cilist=c(paste0(beta0_ll,",",beta0_ul),paste0(beta1_ll,",",beta1_ul))
+
+#federal learning output table
+fed_output=cbind(betalist,sdlist,tscorelist,cilist,pvaluelist)
+
+rname=c("Intercept","Total Screen Time")
+cname=c("Coefficient","SD","T-score","95%CI","P-value")
+colnames(fed_output)=cname
+row.names(fed_output)=rname
+
+kable(fed_output,booktabs = T)
 
 ```
 
@@ -150,15 +210,181 @@ From the result above, we found that the estimated $\hat{\beta_1}$ is `r beta1_h
 This results shows that there might be positive relationship between the first pick-up and the total screen time in the previous day but the relationship is not significant.
 
 # Meta Learning: 
-You may now extend the above federated learning based on the simple linear regression with one covariate to the case of multiple regression with many covariates (e.g. the number of pickups and duration per use etc.), that is, y ~ x1 + … + xp. The meta learning allows you to establish a distributed computing platform to carry out the federated learning without sharing individual data.  Demonstrate your meta learning platform by one example with multiple predictors.  
-# Confirmation analysis: 
-Note that your team has a combined data sheet. Thus, you may repeat the above analyses of the simple regression and multiple regression using the combined raw data to obtain the oracle results.  Compare and confirm numerically if the results from the federated learning method are the same as the oracle results.  
 
+
+Overall Model:
+
+$Y_i=\beta_0+\beta_1*X_{i1}+\beta_2*X_{i2+}\epsilon_i$
+
+where :
+
+* $Y_i$ refers to First Pickup time. 
+* $X_{i1}$ refers to Total Screen time in the previous day 
+* $X_{i2}$ refers to the Social Sreen time
+
+From the principle of Simple linear regression, we could get following formula for the regression coefficients:
+
+* $\hat{\beta }=(X^TX)^{-1}X^TY$ 
+
+If we define $X_{n*3}=\begin{bmatrix} 1 & X_1^T & X_2^T \end{bmatrix}$ , $Y_{n*1}=\begin{bmatrix} Y_1 & ... & Y_n \end{bmatrix}^T$ where $X_1$, $X_2$ are row vector.
+
+Thus, We have 
+
+$X^TX=\begin{bmatrix}1\\ X_1\\ X_2\end{bmatrix}_{3*n}\begin{bmatrix} 1 & X_1^T & X_2^T \end{bmatrix}_{n*3}=\begin{bmatrix}n & \sum_{i=1}^{n}X_{i1} & \sum_{i=1}^{n}X_{i2} \\ \sum_{i=1}^{n}X_{i1} & \sum_{i=1}^{n}X_{i1}^2 & \sum_{i=1}^{n}X_{i1}X_{i2} \\ \sum_{i=1}^{n}X_{i2} & \sum_{i=1}^{n}X_{i1}X_{i2} & \sum_{i=1}^{n}X_{i2}^2 \end{bmatrix}$
+
+$X^TY=\begin{bmatrix}1\\ X_1\\ X_2\end{bmatrix}_{3*n}\begin{bmatrix} Y_1 & ... & Y_n \end{bmatrix}^T_{n*1}=\begin{bmatrix} \sum_{i=1}^{n}Y_i\\ \sum_{i=1}^{n}Y_iX_{i1} \\ \sum_{i=1}^{n}Y_iX_{i2} \end{bmatrix}$
+
+In summary:
+
+$\hat{\beta }=\begin{bmatrix}1 & \overline{X_{1}} & \overline{X_{2}} \\ \overline{X_{1}} & \overline{X_{1}^2} & \overline{X_{1}X_{2}} \\ \overline{X_{2}} & \overline{X_{1}X_{2}} & \overline{X_{2}^2} \end{bmatrix}^{-1}\begin{bmatrix} \overline{Y}\\ \overline{YX_{1}} \\ \overline{YX_{2}}\end{bmatrix}$
+
+Where, from Federal learning, we have :
+
+* $\overline{YX_1}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{YX_1}(D1)+\frac{n_2}{n_1+n_2}*\overline{YX_1}(D2)$  
+
+* $\overline{YX_2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{YX_2}(D1)+\frac{n_2}{n_1+n_2}*\overline{YX_2}(D2)$ 
+
+* $\overline{X_1}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_1}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_1}(D2)$ 
+
+* $\overline{X_2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_2}(D2)$ 
+
+* $\overline{Y}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{Y}(D1)+\frac{n_2}{n_1+n_2}*\overline{Y}(D2)$ 
+
+* $\overline{X_1^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_1^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_1^2}(D2)$ 
+
+* $\overline{X_2^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_2^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_2^2}(D2)$ 
+
+* $\overline{X_1X_2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_1X_2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_1X_2}(D2)$ 
+
+
+For the Variance of $\hat{\beta}$, we have the variance-covariance matrix defined as the following:
+
+* $\hat{Var(\hat{\beta})}=\hat{\sigma^2}(X^TX)^{-1}=MSE*(X^TX)^{-1}$ 
+
+
+Where
+
+* $MSE(D1 \cup D2)=\frac{SSE(D1)+SSE(D2)}{n_1+n_2-3}$ 
+
+* $SSE=\sum_{i=1}^{n}(Y_i-\hat{Y_i})^2$ 
+
+
+To test Whether the coefficient ($\beta_1$ or $\beta_2$) is significant from 0, we use the following t-test: 
+
+* $\frac{\hat{\beta_i}-\beta_i}{\sqrt{\hat{Var(\hat{\beta_i})}}}\sim t_{n_1+n_2-3}$ 
+
+where $\beta_i=0$
+
+
+Following is the R code implement the formula above:
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+
+
+n1=nrow(data_D1)
+n2=nrow(data_D2)
+#Indivdual mean
+X1Y_D1_bar=mean(data_D1$X1Y,na.rm = T)
+X1Y_D2_bar=mean(data_D2$X1Y,na.rm = T)
+X2Y_D1_bar=mean(data_D1$X2Y,na.rm = T)
+X2Y_D2_bar=mean(data_D2$X2Y,na.rm = T)
+X1_D1_bar=mean(data_D1$X1,na.rm = T)
+X1_D2_bar=mean(data_D2$X1,na.rm = T)
+X2_D1_bar=mean(data_D1$X2,na.rm = T)
+X2_D2_bar=mean(data_D2$X2,na.rm = T)
+Y_D1_bar=mean(data_D1$Pickup.1st.minute,na.rm = T)
+Y_D2_bar=mean(data_D2$Pickup.1st.minute,na.rm = T)
+X1square_D1_bar=mean(data_D1$X1square,na.rm = T)
+X1square_D2_bar=mean(data_D2$X1square,na.rm = T)
+X2square_D1_bar=mean(data_D1$X2square,na.rm = T)
+X2square_D2_bar=mean(data_D2$X2square,na.rm = T)
+X1X2_D1_bar=mean(data_D1$X1X2,na.rm = T)
+X1X2_D2_bar=mean(data_D2$X1X2,na.rm = T)
+#Overall mean:
+X1Y_D1D2_bar=n1/(n1+n2)*X1Y_D1_bar+n2/(n1+n2)*X1Y_D2_bar
+X2Y_D1D2_bar=n1/(n1+n2)*X2Y_D1_bar+n2/(n1+n2)*X2Y_D2_bar
+Y_D1D2_bar=n1/(n1+n2)*Y_D1_bar+n2/(n1+n2)*Y_D2_bar
+X1_D1D2_bar=n1/(n1+n2)*X1_D1_bar+n2/(n1+n2)*X1_D2_bar
+X2_D1D2_bar=n1/(n1+n2)*X2_D1_bar+n2/(n1+n2)*X2_D2_bar
+X1square_D1D2_bar=n1/(n1+n2)*X1square_D1_bar+n2/(n1+n2)*X1square_D2_bar
+X2square_D1D2_bar=n1/(n1+n2)*X2square_D1_bar+n2/(n1+n2)*X2square_D2_bar
+X1X2_D1D2_bar=n1/(n1+n2)*X1X2_D1_bar+n2/(n1+n2)*X1X2_D2_bar
+
+#Matrix and beta hat
+XTX_matrix=rbind(c(1,X1_D1D2_bar,X2_D1D2_bar),
+                 c(X1_D1D2_bar,X1square_D1D2_bar,X1X2_D1D2_bar),
+                 c(X2_D1D2_bar,X1X2_D1D2_bar,X2square_D1D2_bar))
+XTX_matrix=as.matrix(XTX_matrix)
+XTX_matrix_inverse=solve(XTX_matrix)
+XTY_matrix=as.matrix(c(Y_D1D2_bar,X1Y_D1D2_bar,X2Y_D1D2_bar))
+
+beta_hat=XTX_matrix_inverse %*% XTY_matrix
+
+#MSE:
+data_D1=data_D1 %>%
+  mutate(yhat2=beta_hat[1,1]+beta_hat[2,1]*X1+beta_hat[3,1]*X2) %>%
+  mutate(Ydiff_square2=(yhat2-Pickup.1st.minute)^2)
+data_D2=data_D2 %>%
+  mutate(yhat2=beta_hat[1,1]+beta_hat[2,1]*X1+beta_hat[3,1]*X2) %>%
+  mutate(Ydiff_square2=(yhat2-Pickup.1st.minute)^2)
+
+#Calculated SSE seperately
+SSE_D1=sum(data_D1$Ydiff_square2,na.rm = T)
+SSE_D2=sum(data_D2$Ydiff_square2,na.rm = T)
+
+#Calculate MSE:
+MSE=(SSE_D1+SSE_D2)/(n1+n2-3)
+
+#Variance-covariance matrix:
+Varhat_betahat=diag(XTX_matrix_inverse)*c(MSE)
+sd_betahat=sqrt(Varhat_betahat)
+
+#t-score:
+tscorelist=beta_hat/sd_betahat
+plist=2*pt(tscorelist, n1+n2-3, lower.tail = FALSE)
+
+
+#95% CI
+ul=format(beta_hat+tscorelist*sd_betahat,digits=2)
+ll=format(beta_hat-tscorelist*sd_betahat,digits=2)
+
+
+#Output result in a table:
+
+betalist=format(round(beta_hat,4))
+sdlist=format(round(sqrt(Varhat_betahat),4))
+tscorelist=format(round(tscorelist,4))
+pvaluelist=format(round(plist,3))
+pvaluelist=str_replace_all(pvaluelist,"0.000","<0.001")
+
+cilist=c(paste0(ul,",",ll))
+
+#federal learning output table
+meta_output=cbind(betalist,sdlist,tscorelist,cilist,pvaluelist)
+
+rname=c("Intercept","Total Screen Time","Total Pickups")
+cname=c("Coefficient","SD","T-score","95%CI","P-value")
+colnames(meta_output)=cname
+row.names(meta_output)=rname
+
+kable(meta_output,booktabs = T)
+
+
+```
+
+
+
+
+# Confirmation analysis: 
 
 ## Confirm the analysis:
 
 ### Federal learning:
-```{r}
+
+Output from the overall linear regression
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+
 data_overall=read.xlsx("data/hotpot_screen_data.xlsx",sheetName ="Overall")
 
 #Transfer the time into minutes:
@@ -168,23 +394,105 @@ data_overall=rbind(data_D1,data_D2)
 fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time,data=data_overall)
 summary(fit)$coef
 
-beta1_hat
-beta0_hat
+```
 
-SD_beta1_hat
-SD_beta0_hat
+Output from the federal learning:
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+kable(fed_output,booktabs = T)
+```
+
+The coefficients and SD calculated in the federal learning is the same as the one calculated using overall data. 
+
+
+### Meta learning:
+
+Results using the overall data:
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_overall)
+summary(fit)$coef
 
 
 ```
 
-The coefficients calculated in the federal learning is the same as the one calcuated using overall data. However, the SD is a little bit difference. This might due to the significant point error.
+Results using the federal learning method
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+kable(meta_output,booktabs = T)
+```
+
+
+Separate by individual: stratification
+
+
+Individual 1
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_D1)
+summary(fit)$coef
+```
+
+
+Individual 2
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_D2)
+summary(fit)$coef
+```
+
+
+#Conclusion & Discussion: 
 
 
 
-Conclusion & Discussion: Summarize your main contributions and findings in this project. What was your experience of data analysis, especially in the aspect of team collaboration? What have you found to be most interesting and surprising? What are the limitations of your study (e.g. the inclusion of confounding factors in the analysis)? What is the future work? 
+
+
+
+### Sensitivity analysis by individual: Strafitication
+
+
+#### Federal
+
+
+Individual 1
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time,data=data_D1)
+summary(fit)$coef
+```
+
+Individual 2
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time,data=data_D2)
+summary(fit)$coef
+```
+
+
+
+#### Meta
+
+Individual 1
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_D1)
+summary(fit)$coef
+```
+
+Individual 2
+
+```{r, echo=FALSE,error=FALSE,message=FALSE}
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_D2)
+summary(fit)$coef
+```
+
+
+
+
 # Acknowledgement: 
-You may write some additional notes related to help given by people outside of the authorship and roles that individual authors played in the project.  
+
+  
 # Appendix: 
-You can always create an appendix to include more detailed supplementary information of your project if necessary. 
-Format Required by the Project 
-Each project should be prepared with one-inch margins, in 12-point size letters and no more than 25 lines per page, double-spaced throughout. The first page should include a  title, authorship, key phrases, and a one-paragraph abstract. The abstract should not exceed 200 words. Each project should not exceed 8 pages, including title, authors, abstract, key phrases, figures and tables as well as references. You are allowed to submit an appendix that contains some technical details, R code, and additional analysis results.  The appendix should not exceed 5 pages.   
+
+   
