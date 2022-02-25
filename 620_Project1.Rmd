@@ -1,24 +1,262 @@
 ---
-title: "Project I, BIOTAT 620W2022"
-author: "Team Hot Pot; Xueting Tao, Isabel Gomez"
+title: "Project I: BIOTAT 620W2022"
+author: "Team Hot Pot: Xueting Tao, Isabel Gomez"
 date: "2/14/2022"
 output: pdf_document
 ---
 
-
-# Title:  Give a title of project I. 
-# Author:  Xueting Tao, Isabel Gomez
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, error = FALSE, warning = FALSE)
+library(readxl)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(GGally)
+library(circular)
+library(kableExtra)
+```
 
 # Abstract:  Write a high-level summary of project I.  
 
 # Introduction: 
 This section should include objective, hypothesis, and motivation of your project, followed by a brief discussion why your data are relevant to your proposed study.  In addition, it presents an outline of your data analysis as well as some major findings.   
 
-# Data Description: 
-This section covers background of data collection, list of variables (see a separate file), and characterization of a team.  It is important to create the so-called Table 1 
-that lists summary descriptive statistics for all collected variables to describe the team.  You may also consider using figures (e.g. boxplot, histogram, scatterplot, time series plot, ACF plot and circular plot of 24 hours), if necessary,  to display distributions of some variables for which you like to show more detailed information.  
+
+## **Data Description**  
+This section covers background of data collection, list of variables (see a separate file), and characterization of a team.  It is important to create the so-called Table 1 that lists summary descriptive statistics for all collected variables to describe the team.  You may also consider using figures (e.g. boxplot, histogram, scatterplot, time series plot, ACF plot and circular plot of 24 hours), if necessary,  to display distributions of some variables for which you like to show more detailed information. 
+
+
+
+Two sets of self-reported data were collected for this study. The first, self-reported screen usage data between January 3rd, 2022 – February 13, 2022 (20 days) from two students in the Biostatistics 620 class is used in this study. There are a total of eight variables reported: ID or identification of participant, total daily screen time reported in minutes,daily social media time reported in minutes, number of pick-ups in a day, and first pick up time reported as HH:MM. A second set of baseline data used to characterize participants and teams, is also collected. There are a total of 13 variables collected: number of team members participant has ever wok wih in any previous group project reported as a continuous variable with maximum value 2, number of team members participant regular talks about academic matters with reported as a continuous variable with maximum value 2, number of team members participant ever talks about topics other than academic matters with reported as a continuous variable with maximum value 2, if the participant lives with pets at home that they look after reported as a binary variables with 0 = no, the sex of the participant reported as a binary variable with 0 = female, the age of the participant reported as a continuous variable, the course credit hours in the winter semester reported as a continuous variable, the country where participated previously received their degree from reported as a binary with 0 = Non- U.S, current employment status with 0 = not employed over 10 hours/week, number of siblings reported as a continuous variable, number of social apps installed on regularly used mobile device reported as a continuous variables, number of personal mobile devices owned reported as a continuous variable, and finally the procrastination score reported as a score from 0 to 100 from the psychology today procrastination test abridge.  
+
+Table 1 shows the drastic difference in screen usage and number of pickups between the two participants in this study. As a team, the average amount of total screen time between January 3rd - February 13, 2022 is 421 minutes or approximately 7 hours. The average social screen time is 105 minutes or 1 hour and 45 minutes and the average number of daily pickups was 96.
+
+```{r}
+#read in screen time data 
+screen_data = read_excel(path = "data/hotpot_screen_data_v1.xlsx")
+```
+
+
+```{r, error = FALSE, warning=FALSE}
+screen_data = screen_data %>% 
+  mutate(Pickup.1st = as.POSIXct(paste(as.character(Date),
+                                                   unlist(lapply(Pickup.1st,
+                                                        function(x){strsplit(as.character(x), split =" ") [[1]] [2]})))))
+```
+
+
+	
+	
+```{r}
+screen_data_isgomez = screen_data %>% filter(ID == "isgomez")
+screen_data_xuetao = screen_data %>% filter(ID == "xuetao")
+  summary_data = data.frame(
+           ID = rep(c("isgomez","xuetao","hotpot"), times = 3),
+           category = c(                                         rep("tot.scr.time", times = 3),
+                        rep("tot.soc.time", times = 3), 
+                        rep("pickups", times = 3)), 
+           # min = c(min(screen_data_isgomez$Pickup.1st),
+           #         min(screen_data_xuetao$Pickup.1st),
+           #         min(screen_data$Pickup.1st),
+            min =  c(min(screen_data_isgomez$Tot.Scr.Time),
+                   min(screen_data_xuetao$Tot.Scr.Time),
+                   min(screen_data$Tot.Scr.Time),
+                   min(screen_data_isgomez$Tot.Soc.Time),
+                   min(screen_data_xuetao$Tot.Soc.Time),
+                   min(screen_data$Tot.Soc.Time),
+                   min(screen_data_isgomez$Pickups),
+                   min(screen_data_xuetao$Pickups),
+                   min(screen_data$Pickups)), 
+           # max = c(max(screen_data_isgomez$Pickup.1st),
+           #         max(screen_data_xuetao$Pickup.1st),
+           #         max(screen_data$Pickup.1st),
+           max =  c(max(screen_data_isgomez$Tot.Scr.Time),
+                   max(screen_data_xuetao$Tot.Scr.Time),
+                   max(screen_data$Tot.Scr.Time),
+                   max(screen_data_isgomez$Tot.Soc.Time),
+                   max(screen_data_xuetao$Tot.Soc.Time),
+                   max(screen_data$Tot.Soc.Time),
+                   max(screen_data_isgomez$Pickups),
+                   max(screen_data_xuetao$Pickups),
+                   max(screen_data$Pickups)),
+           # mean = c(mean(screen_data_isgomez$Pickup.1st),
+           #         mean(screen_data_xuetao$Pickup.1st),
+           #         mean(screen_data$Pickup.1st),
+           mean = c(mean(screen_data_isgomez$Tot.Scr.Time),
+                   mean(screen_data_xuetao$Tot.Scr.Time),
+                   mean(screen_data$Tot.Scr.Time),
+                   mean(screen_data_isgomez$Tot.Soc.Time),
+                   mean(screen_data_xuetao$Tot.Soc.Time),
+                   mean(screen_data$Tot.Soc.Time),
+                   mean(screen_data_isgomez$Pickups),
+                   mean(screen_data_xuetao$Pickups),
+                   mean(screen_data$Pickups)),
+           # median = c(median(screen_data_isgomez$Pickup.1st),
+           #         median(screen_data_xuetao$Pickup.1st),
+           #         median(screen_data$Pickup.1st),
+           median = c(median(screen_data_isgomez$Tot.Scr.Time),
+                   median(screen_data_xuetao$Tot.Scr.Time),
+                   median(screen_data$Tot.Scr.Time),
+                   median(screen_data_isgomez$Tot.Soc.Time),
+                   median(screen_data_xuetao$Tot.Soc.Time),
+                   median(screen_data$Tot.Soc.Time),
+                   median(screen_data_isgomez$Pickups),
+                   median(screen_data_xuetao$Pickups),
+                   median(screen_data$Pickups)),
+           sd = c(sd(screen_data_isgomez$Tot.Scr.Time),
+                   sd(screen_data_xuetao$Tot.Scr.Time),
+                   sd(screen_data$Tot.Scr.Time),
+                   sd(screen_data_isgomez$Tot.Soc.Time),
+                   sd(screen_data_xuetao$Tot.Soc.Time),
+                   sd(screen_data$Tot.Soc.Time),
+                   sd(screen_data_isgomez$Pickups),
+                   sd(screen_data_xuetao$Pickups),
+                   sd(screen_data$Pickups)))
+  
+
+```
+
+```{r}
+summary_data2 = summary_data %>% select("ID","min","max","mean","median","sd") %>% mutate(mean = round(mean,0), sd = round(sd,0), median = round(median,0))
+
+kable(summary_data2, booktabs = TRUE,  caption = "Screen Data Summary Descriptive Statistic per participant") %>% pack_rows(
+  index = c("Total Screen Time (in minutes)" = 3, "Total Social Time (in minutes)" = 3, "Number of daily pickups" = 3)) %>%
+  kable_styling(font_size = 10, position = "center", full_width = FALSE)
+```
+	
+Figure 1 displays the pairwise scatter plots of total screen time, social screen time and number of pickups for the group. There is moderately weak significant negative correlation between total screen time and number of pickups (Pearson correlation = -0.292). Social screen time has a weak positive correlation with both total screen time (pearson correlation = 0.035) and number of pickups (pearson correlation = 0.181), both of these are non-significant. 
+
+
+
+```{r, fig.height=5, fig.width=7,fig.cap = "Pairwise scatterplot of total screen time, social screen time and total pickup for team hotpot."}
+#CORRELATION PLOTS 
+ggpairs(screen_data,columns = c("Tot.Scr.Time", "Tot.Soc.Time", "Pickups"),
+        columnLabels = c("Total Screen Time", "Social Screen Time", "Total Pickups")) +
+  theme_minimal()
+```
+
+
+
+```{r}
+#getting team average screen data info
+screen_data$weekday = weekdays(screen_data$Date, abbreviate = T)
+
+screen_data = screen_data %>% group_by(Date) %>% mutate(Avg.Total.ST = mean(Tot.Scr.Time),
+                                                        Avg.Social.ST = mean(Tot.Soc.Time),
+                                                        Avg.Pickups = mean(Pickups))
+screen_data = screen_data %>%
+  mutate(if_weekend = weekday %in% c("Sun", "Sat")) 
+
+screen_data = screen_data %>%
+  group_by(weekday) %>%
+  mutate(Avg.Total.ST.wkd = mean(Tot.Scr.Time),
+         Avg.Social.ST.wkd = mean(Tot.Soc.Time))
+
+screen_data$weekday  = factor(screen_data$weekday, levels=c("Sun", "Mon", "Tue",
+                                        "Wed", "Thu", "Fri", "Sat"))
+```
+
+```{r, fig.height=5, fig.width=7, fig.cap = "Time Series Plots (a) - (e) team average total screen time, social screen time, team average total number of pickups, average total screen time by weekday, average social screen time by weekday"}
+#total screen time 
+total = ggplot(screen_data, aes(x = Date, y = Avg.Total.ST,
+                        color = if_weekend)) +
+        geom_line(color = "steelblue") + 
+        geom_point() +
+        labs(x = "", y ="Total Screen Time (min)", caption = "(a) total screen time" ) +
+        ylim(15,702) +
+        scale_color_manual(labels = c("weekdays", "weekends"), values = 
+                            c("black","red")) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1),
+          axis.title.y = element_text(size = 8, hjust = 1),
+          plot.caption = element_text(hjust=0.5,vjust = 0.1, size=9),
+          legend.title = element_blank())
+
+#social screen time 
+social = ggplot(screen_data, aes(x = Date, y = Avg.Social.ST,
+                        color = if_weekend)) +
+        geom_line(color = "steelblue") + 
+        geom_point() +
+        labs(x = "", y = "Social Screen Time (min)",caption = "(b) social screen time" ) +
+        ylim(15,702) +
+        scale_color_manual(labels = c("weekdays", "weekends"), values = 
+                            c("black","red")) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1), 
+          axis.title.y = element_text(size= 8, hjust = 1),
+          plot.caption = element_text(hjust=0.5,vjust = 0.1, size=9),
+          legend.title = element_blank())
+
+#pickups 
+pickups = ggplot(screen_data, aes(x = Date, y = Avg.Pickups,
+                        color = if_weekend)) +
+        geom_line(color = "steelblue") + 
+        geom_point() +
+        labs(x = "", y = "Total Number of Pickups)", caption = "(c) total pickups") +
+        ylim(15,702) +
+        scale_color_manual(labels = c("weekdays", "weekends"), values = 
+                            c("black","red")) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1),
+          axis.title.y = element_text(size = 7.5),
+          plot.caption = element_text(hjust=0.5,vjust = 0.1, size=9),
+          legend.title = element_blank())
+
+#weekday total
+weekday.total = ggplot(screen_data, aes(x = weekday, y = Avg.Total.ST.wkd)) +
+  geom_col() +
+  labs(caption = "(d) average total screen time", y = "Average Total Screen Time (min)") +
+  theme_minimal() +
+  theme(axis.title.y = element_text(size = 8),
+         plot.caption = element_text(hjust=0.5,vjust = 0.1, size=9),)
+
+#social total
+social.total = ggplot(screen_data, aes(x = weekday, y = Avg.Social.ST.wkd)) +
+  geom_col() +
+  labs(caption = "(e) average social screen time ", y = "Average Social Screen Time (min)") +
+  theme_minimal() +
+  theme(axis.title.y = element_text(size = 8), 
+        plot.caption = element_text(hjust=0.5,vjust = 0.1, size=9),)
+  
+grid.arrange(total,social,pickups,weekday.total,social.total, ncol = 2, nrow = 3)
+```
+
+
+```{r}
+screen_data = screen_data %>% group_by(Date) %>% mutate(Avg.Pickup.1st = mean(Pickup.1st))
+screen_data = screen_data %>% mutate(Pickup.1st.angular = (hour(Avg.Pickup.1st)*60+minute(Avg.Pickup.1st)) / (24*60)*360)
+
+screen_data_isgomez = screen_data_isgomez %>% mutate(Pickup.1st.angular = (hour(Pickup.1st)*60+minute(Pickup.1st)) / (24*60)*360)
+screen_data_xuetao = screen_data_xuetao %>% mutate(Pickup.1st.angular = (hour(Pickup.1st)*60+minute(Pickup.1st)) / (24*60)*360)
+```
+
+```{r, results = "hide"}
+first.pickup.cir.hotpot = circular(screen_data$Pickup.1st.angular, units = "degrees", template = "clock24")
+
+first.pickup.cir.xuetao = circular(screen_data_xuetao$Pickup.1st.angular, units = "degrees", template = "clock24")
+
+first.pickup.cir.isgomez = circular(screen_data_isgomez$Pickup.1st.angular, units = "degrees", template = "clock24")
+
+```
+
+
+Figure 2 shows the first pick-up time for each member, along with the average of all the participants together. From this figure we can see that the most popular pickup time is around 7:30am. Whereas if we look at the individual pickup time, isgomez has a more variable pickup time with the earliest being at 8:30am and xuetao has a more consolidated pickup time around 7:30am. 
+```{r, results = "hide"}
+
+plot(first.pickup.cir.hotpot, stack=TRUE, bins=24, col = "blue")
+plot(first.pickup.cir.isgomez, stack=TRUE, bins=24, col = "blue")
+plot(first.pickup.cir.xuetao, stack=TRUE, bins=24, col = "blue")
+```
+
+
+
+
+
 # Data Preprocessing: 
 This section discusses issues related to data merging from individual data sheets into a group data sheet, data cleaning and validation, data harmonization in data merging, variable transformation and so on.  
+
 
 #Federated Learning: 
 Based on your study objective and hypothesis given in the Introduction section as well as preliminary data analysis in the Data Description section, in this case you choose an outcome variable y (e.g. daily social screen time), and a predictor x (e.g. number of pickups), to run a linear regression y ~ x via the federated learning method.  Here, each device user represents a data source where raw data cannot be shared, but summary statistics are allowed to be shared. (a) First, establish a federated learning procedure for the calculation of regression parameters (intercept, slope and variance) and their standard errors.  Second, (b) describe a distributed computing platform to implement your federated learning machinery developed in part (a).  (c) Third, report your analysis results.  
@@ -26,12 +264,48 @@ Based on your study objective and hypothesis given in the Introduction section a
 
 # Meta Learning: 
 You may now extend the above federated learning based on the simple linear regression with one covariate to the case of multiple regression with many covariates (e.g. the number of pickups and duration per use etc.), that is, y ~ x1 + … + xp. The meta learning allows you to establish a distributed computing platform to carry out the federated learning without sharing individual data.  Demonstrate your meta learning platform by one example with multiple predictors.  
+
+
 # Confirmation analysis: 
 Note that your team has a combined data sheet. Thus, you may repeat the above analyses of the simple regression and multiple regression using the combined raw data to obtain the oracle results.  Compare and confirm numerically if the results from the federated learning method are the same as the oracle results.  
 Conclusion & Discussion: Summarize your main contributions and findings in this project. What was your experience of data analysis, especially in the aspect of team collaboration? What have you found to be most interesting and surprising? What are the limitations of your study (e.g. the inclusion of confounding factors in the analysis)? What is the future work? 
+
+
 # Acknowledgement: 
 You may write some additional notes related to help given by people outside of the authorship and roles that individual authors played in the project.  
+
+
+
 # Appendix: 
 You can always create an appendix to include more detailed supplementary information of your project if necessary. 
 Format Required by the Project 
-Each project should be prepared with one-inch margins, in 12-point size letters and no more than 25 lines per page, double-spaced throughout. The first page should include a  title, authorship, key phrases, and a one-paragraph abstract. The abstract should not exceed 200 words. Each project should not exceed 8 pages, including title, authors, abstract, key phrases, figures and tables as well as references. You are allowed to submit an appendix that contains some technical details, R code, and additional analysis results.  The appendix should not exceed 5 pages.   
+Each project should be prepared with one-inch margins, in 12-point size letters and no more than 25 lines per page, double-spaced throughout. The first page should include a  title, authorship, key phrases, and a one-paragraph abstract. The abstract should not exceed 200 words. Each project should not exceed 8 pages, including title, authors, abstract, key phrases, figures and tables as well as references. You are allowed to submit an appendix that contains some technical details, R code, and additional analysis results.  The appendix should not exceed 5 pages. 
+
+
+
+
+```{r, results = "hide"}
+
+#convert angular data to be on interval -pi to pi
+#sct$Pickup.1st.von.mis = sct$Pickup.1st.angular*2*pi/360 - pi
+screen_data$Pickup.1st.radian = -(screen_data$Pickup.1st.angular)*(pi/180)
+
+
+  von = mle.vonmises(screen_data$Pickup.1st.radian)
+```
+
+
+```{r, echo = TRUE, results = "hide", eval = FALSE}
+ff <- function(x) dvonmises(x, mu=circular(2*pi-2.04), kappa=13.44)
+curve.circular(ff, join=TRUE, xlim=c(-2.3, 1),
+  main="Density of a VonMises Distribution \n mu=2.337, kappa=3.941")
+#plot(density.circular(density_V, bw = 3))
+```
+
+
+
+```{r}
+error = diff(screen_data$Avg.Social.ST,lag = 1)
+acf(error)
+```
+
