@@ -1,5 +1,5 @@
 ---
-title: "Project I, BIOTAT 620W2022"
+title: "Relationship Between Wake-up time and the total screen time in the previous day using Federal and Meta Learning"
 author: "Team Hot Pot; Xueting Tao, Isabel Gomez"
 date: "2/14/2022"
 output:
@@ -24,7 +24,26 @@ library(circular)
 library(kableExtra)
 ```
 
-# Abstract:  Write a high-level summary of project I.  
+
+# Abstract: 
+
+## Introduction:
+
+The use of cell-phones and their impact on our daily lives is an ongoing relationship that scientists try to understand. This study focused on the relationship between wake-up time and total screen time in the previous day.
+
+## Method:
+
+The data was collected from two students of Biostatistics 620 class, using the summary report in the cellphone. Since we assume that the individual level data could not be shared, thus federal learning method was applied in the simple linear regression(SLR) and meta learning methods was applied to the multiple linear regression (MLR) adjusted for school days. 
+
+## Results:
+
+We found both insignificant relationship between wake-up time and total screen time in the previous day in both adjusted and unadjusted analysis. The School day is significantly related to earlier wake-up time. Federal learning method yields the same results and SLR using overall data while Meta learning gives slightly different results.
+
+## Conclusion:
+
+We cannot varify the relationship between wake-up time and total screen time in the previous day in this study. Further study might be needed with adjusting more baseline confoundings and with bigger sample size.
+
+
 
 # **Introduction:** 
 
@@ -34,6 +53,7 @@ The hypothesis for this study is that screen-time usage is associated with later
 
 
 # **Data Description:** 
+
 
 
 The data was collected between January 3rd, 2022 – February 13, 2022 (20 days) from two students in the Biostatistics 620 class is used in this study. The data was collected both from xuetao’s HUAWEI Mate 30 pro phone and isgomez's iphone. Overall following variables were collected for the study: 
@@ -264,11 +284,14 @@ plot(first.pickup.cir.xuetao, stack=TRUE, bins=24, col = "blue",main="xuetao")
 
 # Data Preprocessing: 
 
-* Since we all from the first year master student, thus we would like to define Monday to Thursday as school day and Friday to Sunday as non-school day.
+The data for both individuals was manually combined using an excel spreadsheet. Previous work on
+ Data validation was conducted at the individual level, therefore we assume that all the data reported in this spreadsheet is accurate. In order to ensure that all the units are the same, a data transformation was made in the first-pick up time to convert the hours into minutes with midnight being 0 minutes and 11:59pm being 1440 minutes.  An additional variable was made by taking the date and converting it to weekdays (Sunday-Saturday).
+
 
 
 
 # Federated Learning: 
+
 
 ```{r, echo=FALSE,error=FALSE,message=FALSE}
 
@@ -297,7 +320,8 @@ data_D1=data_D1 %>%
          X2Y=X2*Pickup.1st.minute,
          X1square=X1^2,
          X2square=X2^2,
-         X1X2=X1*X2)
+         X1X2=X1*X2,
+         pre_pickups=lag(Pickups))
 data_D2=data_D2 %>%
   mutate(Pickup.1st.minute=(hour(Pickup.1st)*60+minute(Pickup.1st))) %>%
   mutate(pre_Tot.Scr.Time=lag(Tot.Scr.Time),
@@ -309,7 +333,8 @@ data_D2=data_D2 %>%
          X2Y=X2*Pickup.1st.minute,
          X1square=X1^2,
          X2square=X2^2,
-         X1X2=X1*X2)
+         X1X2=X1*X2,
+         pre_pickups=lag(Pickups))
 data_D1=data_D1[complete.cases(data_D1),]
 data_D2=data_D2[complete.cases(data_D2),]
 
@@ -319,12 +344,7 @@ Let D1 denote the data from team member 1 (Isabel) and D2 denote the data from t
 
 Overall Model:
 
-$Y_i=\beta_0+\beta_1*X_{i1}+\epsilon_i$
-
-where :
-
-* $Y_i$ refers to First Pickup time.  
-* $X_{i1}$ refers to Total Screen time in the previous day
+$Y_i=\beta_0+\beta_1*X_{i}+\epsilon_i$
 
 
 From the principle of Simple linear regression, we could get following formula for the regression coefficients:
@@ -358,7 +378,7 @@ To test Whether the slope ($\beta_1$) is significant from 0, we use the followin
 where $\beta_1=0$
 
 
-Following is the result utiliziing the method above:
+Following Table 2 is the result utiliziing the method above:
 
 ```{r, echo=FALSE,error=FALSE,message=FALSE}
 
@@ -412,11 +432,11 @@ beta0_tscore=beta0_hat/SD_beta0_hat
 beta0_p=2*(1-pt(q=abs(beta0_tscore),df=n1+n2-2))
 
 #95% CI
-beta1_ul=format(beta1_hat+beta1_tscore*SD_beta1_hat,digits=2)
-beta1_ll=format(beta1_hat-beta1_tscore*SD_beta1_hat,digits=2)
-
-beta0_ul=format(beta1_hat+beta0_tscore*SD_beta0_hat,digits=2)
-beta0_ll=format(beta1_hat-beta0_tscore*SD_beta0_hat,digits=2)
+# beta1_ul=format(beta1_hat+beta1_tscore*SD_beta1_hat,digits=2)
+# beta1_ll=format(beta1_hat-beta1_tscore*SD_beta1_hat,digits=2)
+# 
+# beta0_ul=format(beta1_hat+beta0_tscore*SD_beta0_hat,digits=2)
+# beta0_ll=format(beta1_hat-beta0_tscore*SD_beta0_hat,digits=2)
 
 #Output result in a table:
 betalist=format(round(c(beta0_hat,beta1_hat),4))
@@ -426,17 +446,17 @@ pvaluelist=format(round(c(beta0_p,beta1_p),3))
 
 pvaluelist=str_replace_all(pvaluelist,"0.000","<0.001")
 
-cilist=c(paste0(beta0_ll,",",beta0_ul),paste0(beta1_ll,",",beta1_ul))
+# cilist=c(paste0(beta0_ll,",",beta0_ul),paste0(beta1_ll,",",beta1_ul))
 
 #federal learning output table
-fed_output=cbind(betalist,sdlist,tscorelist,cilist,pvaluelist)
+fed_output=cbind(betalist,sdlist,tscorelist,pvaluelist)
 
 rname=c("Intercept","Total Screen Time")
-cname=c("Coefficient","SD","T-score","95%CI","P-value")
+cname=c("Coefficient","SD","T-score","P-value")
 colnames(fed_output)=cname
 row.names(fed_output)=rname
 
-kable(fed_output,booktabs = T)
+kable(fed_output,booktabs = T,caption = "Federal learning result")
 
 ```
 
@@ -454,147 +474,112 @@ where :
 
 * $Y_i$ refers to First Pickup time. 
 * $X_{i1}$ refers to Total Screen time in the previous day 
-* $X_{i2}$ refers to the Social Sreen time
+* $X_{i2}$ refers to School day(Which Monday to Thursday as school day and Friday to Sunday as non-school day)
 
-From the principle of Simple linear regression, we could get following formula for the regression coefficients:
+First we calculate the 2 individual $\hat{\beta}$ and $\hat{Var\hat{(\beta)}}$ to get the $\hat{\beta^{(1)}}$,  $\hat{\beta^{(2)}}$ and $\hat{Var\hat{(\beta^{(1)})}}$, $\hat{Var\hat{(\beta^{(2)})}}$. 
 
-* $\hat{\beta }=(X^TX)^{-1}X^TY$ 
+To get the best unbiased estimator, we need to minimum variance as the following:
 
-If we define $X_{n*3}=\begin{bmatrix} 1 & X_1^T & X_2^T \end{bmatrix}$ , $Y_{n*1}=\begin{bmatrix} Y_1 & ... & Y_n \end{bmatrix}^T$ where $X_1$, $X_2$ are row vector.
+$minVar[c_1\hat{\theta}_1+c_2\hat{\theta}_2]$ and set $c_1+c_2=1$. As a result, we could calculate the estimate and variance as the following:
 
-Thus, We have 
+Then the $\hat{\beta}^{meta}$ could be calculated using the following formula:
 
-$X^TX=\begin{bmatrix}1\\ X_1\\ X_2\end{bmatrix}_{3*n}\begin{bmatrix} 1 & X_1^T & X_2^T \end{bmatrix}_{n*3}=\begin{bmatrix}n & \sum_{i=1}^{n}X_{i1} & \sum_{i=1}^{n}X_{i2} \\ \sum_{i=1}^{n}X_{i1} & \sum_{i=1}^{n}X_{i1}^2 & \sum_{i=1}^{n}X_{i1}X_{i2} \\ \sum_{i=1}^{n}X_{i2} & \sum_{i=1}^{n}X_{i1}X_{i2} & \sum_{i=1}^{n}X_{i2}^2 \end{bmatrix}$
-
-$X^TY=\begin{bmatrix}1\\ X_1\\ X_2\end{bmatrix}_{3*n}\begin{bmatrix} Y_1 & ... & Y_n \end{bmatrix}^T_{n*1}=\begin{bmatrix} \sum_{i=1}^{n}Y_i\\ \sum_{i=1}^{n}Y_iX_{i1} \\ \sum_{i=1}^{n}Y_iX_{i2} \end{bmatrix}$
-
-In summary:
-
-$\hat{\beta }=\begin{bmatrix}1 & \overline{X_{1}} & \overline{X_{2}} \\ \overline{X_{1}} & \overline{X_{1}^2} & \overline{X_{1}X_{2}} \\ \overline{X_{2}} & \overline{X_{1}X_{2}} & \overline{X_{2}^2} \end{bmatrix}^{-1}\begin{bmatrix} \overline{Y}\\ \overline{YX_{1}} \\ \overline{YX_{2}}\end{bmatrix}$
-
-Where, from Federal learning, we have :
-
-* $\overline{YX_1}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{YX_1}(D1)+\frac{n_2}{n_1+n_2}*\overline{YX_1}(D2)$  
-* $\overline{YX_2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{YX_2}(D1)+\frac{n_2}{n_1+n_2}*\overline{YX_2}(D2)$ 
-* $\overline{X_1}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_1}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_1}(D2)$ 
-* $\overline{X_2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_2}(D2)$ 
-* $\overline{Y}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{Y}(D1)+\frac{n_2}{n_1+n_2}*\overline{Y}(D2)$ 
-* $\overline{X_1^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_1^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_1^2}(D2)$ 
-* $\overline{X_2^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_2^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_2^2}(D2)$ 
-* $\overline{X_1X_2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_1X_2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_1X_2}(D2)$ 
+$\hat{\beta}^{meta}=\frac{\hat{\beta^{(1)}}/\hat{Var\hat{(\beta^{(1)})}}+\hat{\beta^{(2)}}/\hat{Var\hat{(\beta^{(2)})}}}{1/\hat{Var\hat{(\beta^{(1)})}}+1/\hat{Var\hat{(\beta^{(2)})}}}$
 
 
-For the Variance of $\hat{\beta}$, we have the variance-covariance matrix defined as the following:
 
-* $\hat{Var(\hat{\beta})}=\hat{\sigma^2}(X^TX)^{-1}=MSE*(X^TX)^{-1}$ 
+$\hat{Var\hat{(\beta^{meta})}}=\frac{1}{1/\hat{Var\hat{(\beta^{(1)})}}+1/\hat{Var\hat{(\beta^{(2)})}}}$
 
+Below Table 4 is the meta learning result.
 
-Where
+```{r}
+#Calculating individual beta:
+fit1=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Schoolday,data=data_D1)
+fit2=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Schoolday,data=data_D2)
 
-* $MSE(D1 \cup D2)=\frac{SSE(D1)+SSE(D2)}{n_1+n_2-3}$ 
-* $SSE=\sum_{i=1}^{n}(Y_i-\hat{Y_i})^2$ 
+beta0_hat1=summary(fit1)$coef[1,1]
+beta0_hat2=summary(fit2)$coef[1,1]
 
+beta1_hat1=summary(fit1)$coef[2,1]
+beta1_hat2=summary(fit2)$coef[2,1]
 
-To test Whether the coefficient ($\beta_1$ or $\beta_2$) is significant from 0, we use the following t-test: 
+beta2_hat1=summary(fit1)$coef[3,1]
+beta2_hat2=summary(fit2)$coef[3,1]
 
-* $\frac{\hat{\beta_i}-\beta_i}{\sqrt{\hat{Var(\hat{\beta_i})}}}\sim t_{n_1+n_2-3}$ 
+var_beta0hat1=(summary(fit1)$coef[1,2])^2
+var_beta0hat2=(summary(fit2)$coef[1,2])^2
 
-where $\beta_i=0$
+var_beta1hat1=(summary(fit1)$coef[2,2])^2
+var_beta1hat2=(summary(fit2)$coef[2,2])^2
 
+var_beta2hat1=(summary(fit1)$coef[3,2])^2
+var_beta2hat2=(summary(fit2)$coef[3,2])^2
 
-Following is the R code implement the formula above:
+beta0_hat=(beta0_hat1/var_beta0hat1+beta0_hat2/var_beta0hat2)/(1/var_beta0hat1+1/var_beta0hat2)
+beta1_hat=(beta1_hat1/var_beta1hat1+beta1_hat2/var_beta1hat2)/(1/var_beta1hat1+1/var_beta1hat2)
+beta2_hat=(beta2_hat1/var_beta2hat1+beta2_hat2/var_beta2hat2)/(1/var_beta2hat1+1/var_beta2hat2)
 
-```{r, echo=FALSE,error=FALSE,message=FALSE}
+var_beta0hat=1/(1/var_beta0hat1+1/var_beta0hat2)
+var_beta1hat=1/(1/var_beta1hat1+1/var_beta1hat2)
+var_beta2hat=1/(1/var_beta2hat1+1/var_beta2hat2)
 
+SD_beta0_hat=sqrt(var_beta0hat)
+SD_beta1_hat=sqrt(var_beta1hat)
+SD_beta2_hat=sqrt(var_beta2hat)
 
-n1=nrow(data_D1)
-n2=nrow(data_D2)
-#Indivdual mean
-X1Y_D1_bar=mean(data_D1$X1Y,na.rm = T)
-X1Y_D2_bar=mean(data_D2$X1Y,na.rm = T)
-X2Y_D1_bar=mean(data_D1$X2Y,na.rm = T)
-X2Y_D2_bar=mean(data_D2$X2Y,na.rm = T)
-X1_D1_bar=mean(data_D1$X1,na.rm = T)
-X1_D2_bar=mean(data_D2$X1,na.rm = T)
-X2_D1_bar=mean(data_D1$X2,na.rm = T)
-X2_D2_bar=mean(data_D2$X2,na.rm = T)
-Y_D1_bar=mean(data_D1$Pickup.1st.minute,na.rm = T)
-Y_D2_bar=mean(data_D2$Pickup.1st.minute,na.rm = T)
-X1square_D1_bar=mean(data_D1$X1square,na.rm = T)
-X1square_D2_bar=mean(data_D2$X1square,na.rm = T)
-X2square_D1_bar=mean(data_D1$X2square,na.rm = T)
-X2square_D2_bar=mean(data_D2$X2square,na.rm = T)
-X1X2_D1_bar=mean(data_D1$X1X2,na.rm = T)
-X1X2_D2_bar=mean(data_D2$X1X2,na.rm = T)
-#Overall mean:
-X1Y_D1D2_bar=n1/(n1+n2)*X1Y_D1_bar+n2/(n1+n2)*X1Y_D2_bar
-X2Y_D1D2_bar=n1/(n1+n2)*X2Y_D1_bar+n2/(n1+n2)*X2Y_D2_bar
-Y_D1D2_bar=n1/(n1+n2)*Y_D1_bar+n2/(n1+n2)*Y_D2_bar
-X1_D1D2_bar=n1/(n1+n2)*X1_D1_bar+n2/(n1+n2)*X1_D2_bar
-X2_D1D2_bar=n1/(n1+n2)*X2_D1_bar+n2/(n1+n2)*X2_D2_bar
-X1square_D1D2_bar=n1/(n1+n2)*X1square_D1_bar+n2/(n1+n2)*X1square_D2_bar
-X2square_D1D2_bar=n1/(n1+n2)*X2square_D1_bar+n2/(n1+n2)*X2square_D2_bar
-X1X2_D1D2_bar=n1/(n1+n2)*X1X2_D1_bar+n2/(n1+n2)*X1X2_D2_bar
+#T test:
 
-#Matrix and beta hat
-XTX_matrix=rbind(c(1,X1_D1D2_bar,X2_D1D2_bar),
-                 c(X1_D1D2_bar,X1square_D1D2_bar,X1X2_D1D2_bar),
-                 c(X2_D1D2_bar,X1X2_D1D2_bar,X2square_D1D2_bar))
-XTX_matrix=as.matrix(XTX_matrix)
-XTX_matrix_inverse=solve(XTX_matrix)
-XTY_matrix=as.matrix(c(Y_D1D2_bar,X1Y_D1D2_bar,X2Y_D1D2_bar))
+beta0_tscore=beta0_hat/SD_beta0_hat
+beta0_p=2*(1-pt(q=abs(beta0_tscore),df=n1+n2-2))
 
-beta_hat=XTX_matrix_inverse %*% XTY_matrix
+beta1_tscore=beta1_hat/SD_beta1_hat
+beta1_p=2*(1-pt(q=abs(beta1_tscore),df=n1+n2-2))
 
-#MSE:
-data_D1=data_D1 %>%
-  mutate(yhat2=beta_hat[1,1]+beta_hat[2,1]*X1+beta_hat[3,1]*X2) %>%
-  mutate(Ydiff_square2=(yhat2-Pickup.1st.minute)^2)
-data_D2=data_D2 %>%
-  mutate(yhat2=beta_hat[1,1]+beta_hat[2,1]*X1+beta_hat[3,1]*X2) %>%
-  mutate(Ydiff_square2=(yhat2-Pickup.1st.minute)^2)
+beta2_tscore=beta2_hat/SD_beta2_hat
+beta2_p=2*(1-pt(q=abs(beta2_tscore),df=n1+n2-2))
 
-#Calculated SSE seperately
-SSE_D1=sum(data_D1$Ydiff_square2,na.rm = T)
-SSE_D2=sum(data_D2$Ydiff_square2,na.rm = T)
-
-#Calculate MSE:
-MSE=(SSE_D1+SSE_D2)/(n1+n2-3)
-
-#Variance-covariance matrix:
-Varhat_betahat=diag(XTX_matrix_inverse)*c(MSE)
-sd_betahat=sqrt(Varhat_betahat)
-
-#t-score:
-tscorelist=beta_hat/sd_betahat
-plist=2*(1-pt(q=abs(tscorelist),df=n1+n2-3))
-
-
-#95% CI
-ul=format(beta_hat+tscorelist*sd_betahat,digits=2)
-ll=format(beta_hat-tscorelist*sd_betahat,digits=2)
-
+# #95% CI
+# beta1_ul=format(beta1_hat+beta1_tscore*SD_beta1_hat,digits=2)
+# beta1_ll=format(beta1_hat-beta1_tscore*SD_beta1_hat,digits=2)
+# 
+# beta2_ul=format(beta1_hat+beta2_tscore*SD_beta2_hat,digits=2)
+# beta2_ll=format(beta1_hat-beta2_tscore*SD_beta2_hat,digits=2)
 
 #Output result in a table:
+betalist=format(round(c(beta0_hat,beta1_hat,beta2_hat),4))
+sdlist=format(round(c(SD_beta0_hat,SD_beta1_hat,SD_beta2_hat),4))
+tscorelist=format(round(c(beta0_tscore,beta1_tscore,beta2_tscore),4))
+pvaluelist=format(round(c(beta0_p,beta1_p,beta2_p),3))
 
-betalist=format(round(beta_hat,4))
-sdlist=format(round(sqrt(Varhat_betahat),4))
-tscorelist=format(round(tscorelist,4))
-pvaluelist=format(round(plist,3))
 pvaluelist=str_replace_all(pvaluelist,"0.000","<0.001")
 
-cilist=c(paste0(ul,",",ll))
+#cilist=c(paste0(beta1_ll,",",beta1_ul),paste0(beta2_ll,",",beta2_ul))
 
 #federal learning output table
-meta_output=cbind(betalist,sdlist,tscorelist,cilist,pvaluelist)
+meta_output=cbind(betalist,sdlist,tscorelist,pvaluelist)
 
-rname=c("Intercept","Total Screen Time","Total Pickups")
-cname=c("Coefficient","SD","T-score","95%CI","P-value")
+rname=c("Intercept","Total Screen Time","School Day")
+cname=c("Coefficient","SD","T-score","P-value")
 colnames(meta_output)=cname
 row.names(meta_output)=rname
 
-kable(meta_output,booktabs = T)
+kable(meta_output,booktabs = T,caption = "Meta learning result")
 
+# 
+# data_overall=rbind(data_D1,data_D2)
+# fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Schoolday,data=data_overall)
+# summary(fit)
+# 
+# beta1_hat1
+# beta1_hat2
+# beta1_hat
+# 
+# beta2_hat1
+# beta2_hat2
+# beta2_hat
+# 
+# summary(fit1)
+# summary(fit2)
 
 ```
 
@@ -606,26 +591,30 @@ kable(meta_output,booktabs = T)
 
 ### Federal learning:
 
-Output from the overall linear regression
+
 
 ```{r, echo=FALSE,error=FALSE,message=FALSE}
 
-data_overall=read.xlsx("data/hotpot_screen_data.xlsx",sheetName ="Sheet1")
 
 #Transfer the time into minutes:
 data_overall=rbind(data_D1,data_D2)
 
 #Regression
 fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time,data=data_overall)
-kable(summary(fit)$coef,booktabs=T)
+tbl=round(summary(fit)$coef,4)
+tbl[,4]=ifelse(tbl[,4]==0,"<0.001",tbl[,4])
+tbl=rbind(c(NA,NA,NA,NA),tbl,c(NA,NA,NA,NA))
+
+
+#Federal learning
+tbl=rbind(tbl,fed_output)
+tbl=cbind(c(NA,"Intercept","Total Screen time",NA,"Intercept","Total Screen time"),tbl)
+row.names(tbl)=c("Regression",NA,NA,"Federal learning",NA,NA)
+options(knitr.kable.NA = '')
+kable(tbl,booktabs=T,caption = "Validate of Federal learning")
 
 ```
 
-Output from the federal learning:
-
-```{r, echo=FALSE,error=FALSE,message=FALSE}
-kable(fed_output,booktabs = T)
-```
 
 The coefficients and SD calculated in the federal learning is the same as the one calculated using overall data. 
 
@@ -635,34 +624,51 @@ The coefficients and SD calculated in the federal learning is the same as the on
 Results using the overall data:
 
 ```{r, echo=FALSE,error=FALSE,message=FALSE}
-fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_overall)
-kable(summary(fit)$coef,booktabs=T)
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Schoolday,data=data_overall)
+
+tbl=round(summary(fit)$coef,4)
+tbl[,4]=ifelse(tbl[,4]==0,"<0.001",tbl[,4])
+tbl=rbind(c(NA,NA,NA,NA),tbl,c(NA,NA,NA,NA))
+
+
+#Federal learning
+tbl=rbind(tbl,meta_output)
+tbl=cbind(c(NA,"Intercept","Total Screen time","School Day",NA,"Intercept","Total Screen time","School day"),tbl)
+row.names(tbl)=c("Regression",NA,NA,NA,"Federal learning",NA,NA,NA)
+options(knitr.kable.NA = '')
+kable(tbl,booktabs=T,caption = "Validate of Meta learning")
 
 
 ```
 
-Results using the federal learning method
-
-```{r, echo=FALSE,error=FALSE,message=FALSE}
-kable(meta_output,booktabs = T)
-```
-
-The coefficients and SD calculated in the meta learning is the same as the one calculated using overall data.
+As a result, the federal learning estimate and variance is the same as the one we calculated using the overall data while the meta learning result is a little bit different from the one we calculated using the overall result.
 
 
 # Conclusion & Discussion: 
 
-To conclude, this study shows that there is a non-significant relationship between wake-up time and total screen time both in crude analysis and after adjusting for the number of pickups. Interestingly, the number of pickups is significantly associated with wake-up time, a relationship that could be further researched in future studies. This relationship may change as our sample size increases. Additionally, the status of domestic versus international students may play a role in the total amount of time used on the phone, which could also be studied in the future. 
+To conclude, this study shows that there is a non-significant relationship between wake-up time and total screen time both in crude analysis and after adjusting for the School days. However, the School day has a significantly associated with earlier wake-up time, which might result from the need of early class. 
 
-This might be happening because the two individuals in the team have very different patterns of screen usage. As shown in figure3, xuetao has a more constrained wake-up time and isgomez has a more spread wake-up time. This might happen because the two individuals have different schedules for class. Xuetao have more class in the morning which will force her to wake up earlier while isgomez have less class in the morning and could wake up as she want. 
+This might be happening because the two individuals in the team have very different patterns of screen usage. As shown in figure3, xuetao has a more constrained wake-up time and isgomez has a more spread wake-up time. This might happen because the two individuals have different schedules for class. Thus, we further do a separated linear regression for both individuals. 
 
-Thus, we further do a separated linear regression for both individuals. The significance level raised a little bit in isgomez but still not significant. This might result in that the data collected is not big enough(30 per individual) and when we do separate analysis, the uncertainty increases. This might also be due to the difference between school-days and non-school days, or there might be other factors that haven't been considered in the model. Future work might be needed to adjust more covariates like the workload of the day, the total class hour, or whether there is morning classes.
+As shown in the Appendix 1, For isgomez, in both crude and adjusted analysis, the significant level raised a little bit for total screen time  but still not significant. The school day turns to be non-significant in the adjusted analysis. For xuetao, the significant level of total screen time decrease a little bit in the unadjusted analysis and raised a little bit in the adjusted analysis. The significant level for school day raised a little bit in the adjusted analysis. This indicates that the two individual indeed have different habit of screen usage and the combined result might be unreliable because of the difference between two individuals.
 
-Following is the sensitivity analysis result:
+Also, the non-significant relationship might because of small sample size of the study. Since each of us only have 30 observations which leads to higher variance, thus more uncertainty. Moreover, there might be other baseline covraites like class hours, and demographic variables that influence the study. Furthermore, since we are using the first pick-up time to approximate the wake-up time, this approximation could also be biased some time. Further study might be needed to adjusted for more covariates , increase the sample size and have a better approximation of wake-up time.
 
-### Sensitivity analysis by individual: Strafitication
+### What was your experience of data analysis, especially in the aspect of team collaboration? 
 
-* isgomez
+From this data analysis experience, we noticed the importance of alignment of data collecting. For example, although we have the same data frozen time, we didn’t actually have the same data enrollment date. This results in different lines of data for the two individuals. As a result, we decided to keep the same date that we both have data in order to make both of our data have similar weight. In the future study, it is not only important to control the study end time but also to control study enrollment time.
+
+Also, from this analysis, we decided to separate the analysis into data description and federal/meta learning. Both of us contribute to our strength and after communicate after we finished our parts, we both learned a lot from each other.
+
+### Summarize your main contributions and findings in this project. 
+
+Xueting worked on the Federal Learning and Meta Analysis,and edited the write-up report. Isabel worked on the data description, writing and editing the report. Both teammates contribute to the written-up of the team report. This study highlighted the difference in cell-phone usage among individuals, even when they have the same occupation (student). 
+
+# Acknowledgement: 
+
+We would like to express my special thanks to my teacher(Peter Song) as well as GSI(Yuan Zhong) who have been giving us quick and helpful response. Also, we would like to thank my kindly classmates, Wenchu Pan, Xin Luo and Yuntian Wu for their help in understaning of Meta Learning.
+  
+# Appendix: 
 
 ```{r, echo=FALSE,error=FALSE,message=FALSE}
 fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time,data=data_D1)
@@ -670,7 +676,7 @@ unadjust_coef_isgomez=round(fit$coefficients[2],3)
 unadjust_p_isgomez=round(summary(fit)$coef[2,4],3)
 unadjust_isgomez=c(unadjust_coef_isgomez,unadjust_p_isgomez)
 
-fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_D1)
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Schoolday,data=data_D1)
 adjust_coef_isgomez=round(fit$coef[-1],3)
 adjust_p_isgomez=round(summary(fit)$coef[,4][-1],3)
 adjust_isgomez=cbind(adjust_coef_isgomez,adjust_p_isgomez)
@@ -678,14 +684,12 @@ adjust_isgomez=cbind(adjust_coef_isgomez,adjust_p_isgomez)
 tbl=c(NA,NA)
 tbl=rbind(c(NA,NA),adjust_isgomez,c(NA,NA),unadjust_isgomez)
 colnames(tbl)=c("Coef","p-value")
-tbl=cbind(c(NA,"Total Screen time","Total Pickups",NA,"Total Screen time"),tbl)
+tbl=cbind(c(NA,"Total Screen time(in previous day)","School day",NA,"Total Screen time"),tbl)
 row.names(tbl)=c("Ajusted",NA,NA,"Unadjusted",NA)
 options(knitr.kable.NA = '')
-kable(tbl,booktabs=T)
+kable(tbl,booktabs=T,caption="Appendix 1a: Stratified analysis for isgomez")
 ```
 
-
-* xuetao
 
 ```{r, echo=FALSE,error=FALSE,message=FALSE}
 fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time,data=data_D2)
@@ -693,7 +697,7 @@ unadjust_coef_isgomez=round(fit$coefficients[2],3)
 unadjust_p_isgomez=round(summary(fit)$coef[2,4],3)
 unadjust_isgomez=c(unadjust_coef_isgomez,unadjust_p_isgomez)
 
-fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_D2)
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Schoolday,data=data_D2)
 adjust_coef_isgomez=round(fit$coef[-1],3)
 adjust_p_isgomez=round(summary(fit)$coef[,4][-1],3)
 adjust_isgomez=cbind(adjust_coef_isgomez,adjust_p_isgomez)
@@ -701,34 +705,14 @@ adjust_isgomez=cbind(adjust_coef_isgomez,adjust_p_isgomez)
 tbl=c(NA,NA)
 tbl=rbind(c(NA,NA),adjust_isgomez,c(NA,NA),unadjust_isgomez)
 colnames(tbl)=c("Coef","p-value")
-tbl=cbind(c(NA,"Total Screen time","Total Pickups",NA,"Total Screen time"),tbl)
+tbl=cbind(c(NA,"Total Screen time(in previous day)","School day",NA,"Total Screen time"),tbl)
 row.names(tbl)=c("Ajusted",NA,NA,"Unadjusted",NA)
 options(knitr.kable.NA = '')
-kable(tbl,booktabs=T)
+kable(tbl,booktabs=T,caption="Appendix 1b: Stratified analysis for xuetao")
 ```
-
- After stratifying by individual, we found that the data varies greatly between the two participants, which explains the non-significant relationship.
-
-### What was your experience of data analysis, especially in the aspect of team collaboration? 
-
-From this data analysis experience, we noticed the importance of alignment of data collecting. For example, although we have the same data frozen time, we didn’t actually have the same data enrollment date. This results in different lines of data for the two individuals. As a result, we decided to keep the same date that we both have data in order to make both of our data have similar weight. In the future study, it is not only important to control the study end time but also to control study enrollment time.
-Also, from this analysis, we decided to separate the analysis into data description and federal/meta learning. Both of us contribute to our strength.
-
-### Summarize your main contributions and findings in this project. 
-
-
-Xueting worked on the Federal Learning and Meta Analysis,and edited the write-up report. Isabel worked on the data description, writing and editing the report. Both teammates contribute to the written-up of the team report. This study highlighted the difference in cell-phone usage among individuals, even when they have the same occupation (student). 
-
-# Acknowledgement: 
-
-  
-# Appendix: 
-
 
 # Reference:
   
   + [1]. Hale, L., & Guan, S. (2015). Screen time and sleep among school-aged children and adolescents: a systematic literature review. Sleep medicine reviews, 21, 50–58. https://doi.org/10.1016/j.smrv.2014.07.007 
   + [2]. Hiltunen P, Leppänen MH, Ray C, Määttä S, Vepsäläinen H, Koivusilta L, Sajaniemi N, Erkkola M, Roos E. Relationship between screen time and sleep among Finnish preschool  
-
-
    
