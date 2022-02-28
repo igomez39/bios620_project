@@ -7,11 +7,12 @@ output:
     fig_caption: yes        
     includes:  
       in_header: my_header.tex
+    extra_dependencies: ["float"]
 ---
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, error = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = FALSE, error = FALSE, warning = FALSE,fig.pos = "!H", out.extra = "")
 library(readxl)
 library(lubridate)
 library(dplyr)
@@ -27,6 +28,9 @@ library(kableExtra)
 
 # **Introduction:** 
 
+The use of cell-phones and their impact on our daily lives is an ongoing relationship that scientists try to understand. Many studies have shown the impact of phones on various health outcomes such as sleep. A study conducted in 2015, showed that screen time is adversely associated with sleep time [1].  Other studies have shown that cellphone usage is associated with a later wake-up time [2]. Given these findings, we aim to study if a similar pattern arises among the screen time usage in master’s level students at the University of Michigan. The specific data collected includes total screen time in minutes, first pick-up time and the number of pickups in a day. With this specific individual-level data collected, the goal is to better understand phone usage behavior in this group. 
+
+The hypothesis for this study is that screen-time usage is associated with later wake-up times. Here we use the first pick-up time to approximate the wake-up time. In order to test this, we fitted linear regression models using the Federal Learning and the Meta Learning process. In this study we found non-significant relationships between screen time usage and wake-up time. 
 
 
 # **Data Description:** 
@@ -119,17 +123,15 @@ summary_data2 = summary_data %>% select("ID","min","max","mean","median","sd") %
 ```
 
 
-```{r table1, echo=FALSE, out.width = '100%'}
+Table 1 below shows the drastic difference in screen usage and number of pickups between the two participants in this study. As a team, the average amount of total screen time between January 3rd - February 13, 2022 is 421 minutes or approximately 7 hours. The average social screen time is 105 minutes or 1 hour and 45 minutes and the average number of daily pickups was 96.
 
-kable(summary_data2, booktabs = TRUE,  caption = "Screen Data Summary Descriptive Statistic per participant") %>% pack_rows(
+
+```{r }
+
+kable(summary_data2, booktabs = TRUE, caption  = "Screen Data Summary Descriptive Statistic per participant") %>% pack_rows(
   index = c("Total Screen Time (in minutes)" = 3, "Total Social Time (in minutes)" = 3, "Number of daily pickups" = 3)) %>%
   kable_styling(font_size = 10, position = "center", full_width = FALSE)
 ```
-
-
-Table 1 above shows the drastic difference in screen usage and number of pickups between the two participants in this study. As a team, the average amount of total screen time between January 3rd - February 13, 2022 is 421 minutes or approximately 7 hours. The average social screen time is 105 minutes or 1 hour and 45 minutes and the average number of daily pickups was 96.
-
-
 
 
 Figure 1 displays the pairwise scatter plots of total screen time, social screen time and number of pickups for the group. There is moderately weak significant negative correlation between total screen time and number of pickups (Pearson correlation = -0.292). Social screen time has a weak positive correlation with both total screen time (pearson correlation = 0.035) and number of pickups (pearson correlation = 0.181), both of these are non-significant. 
@@ -251,7 +253,8 @@ first.pickup.cir.isgomez = circular(screen_data_isgomez$Pickup.1st.angular, unit
 ```
 
 
-Figure 2 shows the first pick-up time for each member, along with the average of all the participants together. From this figure we can see that the most popular pickup time is around 7:30am. Whereas if we look at the individual pickup time, isgomez has a more variable pickup time with the earliest being at 8:30am and xuetao has a more consolidated pickup time around 7:30am. 
+Figure 3 shows the first pick-up time for each member, along with the average of all the participants together. From this figure we can see that the most popular pickup time is around 7:30am. Whereas if we look at the individual pickup time, isgomez has a more variable pickup time with the earliest being at 8:30am and xuetao has a more consolidated pickup time around 7:30am.  
+
 ```{r, echo=FALSE,fig.cap="First pick-up time", fig.show="hold", out.width="33%"}
 par(mar=c(1,1,1,1))
 plot(first.pickup.cir.hotpot, stack=TRUE, bins=24, col = "blue",main="Hotpot")
@@ -321,40 +324,31 @@ $Y_i=\beta_0+\beta_1*X_{i1}+\epsilon_i$
 where :
 
 * $Y_i$ refers to First Pickup time.  
- 
 * $X_{i1}$ refers to Total Screen time in the previous day
 
 
 From the principle of Simple linear regression, we could get following formula for the regression coefficients:
 
 * $\hat{\beta_1}=\frac{SSXY(D1\cup D2)}{SSX(D1 \cup D2)}$ 
-
 * $\hat{\beta_0}=\overline{Y}(D1 \cup D2)-\hat{\beta_1}*\overline{X}(D1 \cup D2)$ 
 
 Overall SSXY and SSX could be obtained by the following way:
 
 * $SSXY(D1 \cup D2)=(n_1+n_2)*\left \{ \overline{XY}(D1 \cup D2)-\overline{X}(D1 \cup D2)*\overline{Y}(D1 \cup D2) \right \}$ 
-
 * $SSX(D1 \cup D2)= (n_1+n_2)*\left \{ \overline{X^2}(D1 \cup D2)-{\overline{X}}^2(D1 \cup D2)\right \}$ 
-
 * $\overline{XY}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{XY}(D1)+\frac{n_2}{n_1+n_2}*\overline{XY}(D2)$ 
-
 * $\overline{X}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X}(D1)+\frac{n_2}{n_1+n_2}*\overline{X}(D2)$ 
-
 * $\overline{Y}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{Y}(D1)+\frac{n_2}{n_1+n_2}*\overline{Y}(D2)$ 
-
 * $\overline{X^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X^2}(D2)$ 
 
 Also, we learned that the Standard Diviation for $\beta_1$ is defined as the following:
 
 * $SD(\hat{\beta_1})=\sqrt{\hat{Var(\hat{\beta_1})}}=\sqrt{\frac{MSE(D1 \cup D2)}{SSX(D1 \cup D2)}}$ 
-
 * $SD(\hat{\beta_0})=\sqrt{\hat{Var(\hat{\beta_0})}}=\sqrt{MSE*(\frac{1}{n}+\frac{\overline{X}^2(D1 \cup D2)}{SSX(D1 \cup D2)}})$ 
 
 $MSE(D1 \cup D2)$ could be obtained by the following formula: 
 
 * $MSE(D1 \cup D2)=\frac{SSE(D1)+SSE(D2)}{n_1+n_2-2}$ 
-
 * $SSE=\sum_{i=1}^{n}(Y_i-\hat{Y_i})^2$ 
 
 To test Whether the slope ($\beta_1$) is significant from 0, we use the following t-test:
@@ -411,10 +405,11 @@ SD_beta0_hat=sqrt(MSE*(1/(n1+n2)+(X_D1D2_bar)^2/SSX_D1D2))
 
 #T score and p value
 beta1_tscore=beta1_hat/SD_beta1_hat
-beta1_p=2*pt(beta1_tscore, n1+n2-2, lower.tail = FALSE)
+beta1_p=2*(1-pt(q=abs(beta1_tscore),df=n1+n2-2))
+
 
 beta0_tscore=beta0_hat/SD_beta0_hat
-beta0_p=2*pt(beta0_tscore, n1+n2-2, lower.tail = FALSE)
+beta0_p=2*(1-pt(q=abs(beta0_tscore),df=n1+n2-2))
 
 #95% CI
 beta1_ul=format(beta1_hat+beta1_tscore*SD_beta1_hat,digits=2)
@@ -480,19 +475,12 @@ $\hat{\beta }=\begin{bmatrix}1 & \overline{X_{1}} & \overline{X_{2}} \\ \overlin
 Where, from Federal learning, we have :
 
 * $\overline{YX_1}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{YX_1}(D1)+\frac{n_2}{n_1+n_2}*\overline{YX_1}(D2)$  
-
 * $\overline{YX_2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{YX_2}(D1)+\frac{n_2}{n_1+n_2}*\overline{YX_2}(D2)$ 
-
 * $\overline{X_1}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_1}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_1}(D2)$ 
-
 * $\overline{X_2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_2}(D2)$ 
-
 * $\overline{Y}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{Y}(D1)+\frac{n_2}{n_1+n_2}*\overline{Y}(D2)$ 
-
 * $\overline{X_1^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_1^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_1^2}(D2)$ 
-
 * $\overline{X_2^2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_2^2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_2^2}(D2)$ 
-
 * $\overline{X_1X_2}(D1 \cup D2)=\frac{n_1}{n_1+n_2}*\overline{X_1X_2}(D1)+\frac{n_2}{n_1+n_2}*\overline{X_1X_2}(D2)$ 
 
 
@@ -504,7 +492,6 @@ For the Variance of $\hat{\beta}$, we have the variance-covariance matrix define
 Where
 
 * $MSE(D1 \cup D2)=\frac{SSE(D1)+SSE(D2)}{n_1+n_2-3}$ 
-
 * $SSE=\sum_{i=1}^{n}(Y_i-\hat{Y_i})^2$ 
 
 
@@ -580,7 +567,7 @@ sd_betahat=sqrt(Varhat_betahat)
 
 #t-score:
 tscorelist=beta_hat/sd_betahat
-plist=2*pt(tscorelist, n1+n2-3, lower.tail = FALSE)
+plist=2*(1-pt(q=abs(tscorelist),df=n1+n2-3))
 
 
 #95% CI
@@ -610,7 +597,6 @@ kable(meta_output,booktabs = T)
 
 
 ```
-
 
 
 
@@ -661,57 +647,88 @@ Results using the federal learning method
 kable(meta_output,booktabs = T)
 ```
 
+The coefficients and SD calculated in the meta learning is the same as the one calculated using overall data.
+
+
 # Conclusion & Discussion: 
 
+To conclude, this study shows that there is a non-significant relationship between wake-up time and total screen time both in crude analysis and after adjusting for the number of pickups. Interestingly, the number of pickups is significantly associated with wake-up time, a relationship that could be further researched in future studies. This relationship may change as our sample size increases. Additionally, the status of domestic versus international students may play a role in the total amount of time used on the phone, which could also be studied in the future. 
 
+This might be happening because the two individuals in the team have very different patterns of screen usage. As shown in figure3, xuetao has a more constrained wake-up time and isgomez has a more spread wake-up time. This might happen because the two individuals have different schedules for class. Xuetao have more class in the morning which will force her to wake up earlier while isgomez have less class in the morning and could wake up as she want. 
 
+Thus, we further do a separated linear regression for both individuals. The significance level raised a little bit in isgomez but still not significant. This might result in that the data collected is not big enough(30 per individual) and when we do separate analysis, the uncertainty increases. This might also be due to the difference between school-days and non-school days, or there might be other factors that haven't been considered in the model. Future work might be needed to adjust more covariates like the workload of the day, the total class hour, or whether there is morning classes.
 
-
+Following is the sensitivity analysis result:
 
 ### Sensitivity analysis by individual: Strafitication
-
-
-#### Federal
-
 
 * isgomez
 
 ```{r, echo=FALSE,error=FALSE,message=FALSE}
 fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time,data=data_D1)
-kable(summary(fit)$coef,booktabs=T)
+unadjust_coef_isgomez=round(fit$coefficients[2],3)
+unadjust_p_isgomez=round(summary(fit)$coef[2,4],3)
+unadjust_isgomez=c(unadjust_coef_isgomez,unadjust_p_isgomez)
+
+fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_D1)
+adjust_coef_isgomez=round(fit$coef[-1],3)
+adjust_p_isgomez=round(summary(fit)$coef[,4][-1],3)
+adjust_isgomez=cbind(adjust_coef_isgomez,adjust_p_isgomez)
+
+tbl=c(NA,NA)
+tbl=rbind(c(NA,NA),adjust_isgomez,c(NA,NA),unadjust_isgomez)
+colnames(tbl)=c("Coef","p-value")
+tbl=cbind(c(NA,"Total Screen time","Total Pickups",NA,"Total Screen time"),tbl)
+row.names(tbl)=c("Ajusted",NA,NA,"Unadjusted",NA)
+options(knitr.kable.NA = '')
+kable(tbl,booktabs=T)
 ```
+
 
 * xuetao
 
 ```{r, echo=FALSE,error=FALSE,message=FALSE}
 fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time,data=data_D2)
-kable(summary(fit)$coef,booktabs=T)
-```
+unadjust_coef_isgomez=round(fit$coefficients[2],3)
+unadjust_p_isgomez=round(summary(fit)$coef[2,4],3)
+unadjust_isgomez=c(unadjust_coef_isgomez,unadjust_p_isgomez)
 
-
-
-#### Meta
-
-* isgomez
-
-```{r, echo=FALSE,error=FALSE,message=FALSE}
-fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_D1)
-kable(summary(fit)$coef,booktabs=T)
-```
-
-* xuetao
-
-```{r, echo=FALSE,error=FALSE,message=FALSE}
 fit=lm(Pickup.1st.minute~pre_Tot.Scr.Time+Pickups,data=data_D2)
-kable(summary(fit)$coef,booktabs=T)
+adjust_coef_isgomez=round(fit$coef[-1],3)
+adjust_p_isgomez=round(summary(fit)$coef[,4][-1],3)
+adjust_isgomez=cbind(adjust_coef_isgomez,adjust_p_isgomez)
+
+tbl=c(NA,NA)
+tbl=rbind(c(NA,NA),adjust_isgomez,c(NA,NA),unadjust_isgomez)
+colnames(tbl)=c("Coef","p-value")
+tbl=cbind(c(NA,"Total Screen time","Total Pickups",NA,"Total Screen time"),tbl)
+row.names(tbl)=c("Ajusted",NA,NA,"Unadjusted",NA)
+options(knitr.kable.NA = '')
+kable(tbl,booktabs=T)
 ```
 
+ After stratifying by individual, we found that the data varies greatly between the two participants, which explains the non-significant relationship.
+
+### What was your experience of data analysis, especially in the aspect of team collaboration? 
+
+From this data analysis experience, we noticed the importance of alignment of data collecting. For example, although we have the same data frozen time, we didn’t actually have the same data enrollment date. This results in different lines of data for the two individuals. As a result, we decided to keep the same date that we both have data in order to make both of our data have similar weight. In the future study, it is not only important to control the study end time but also to control study enrollment time.
+Also, from this analysis, we decided to separate the analysis into data description and federal/meta learning. Both of us contribute to our strength.
+
+### Summarize your main contributions and findings in this project. 
 
 
+Xueting worked on the Federal Learning and Meta Analysis,and edited the write-up report. Isabel worked on the data description, writing and editing the report. Both teammates contribute to the written-up of the team report. This study highlighted the difference in cell-phone usage among individuals, even when they have the same occupation (student). 
 
 # Acknowledgement: 
 
   
 # Appendix: 
+
+
+# Reference:
+  
+  + [1]. Hale, L., & Guan, S. (2015). Screen time and sleep among school-aged children and adolescents: a systematic literature review. Sleep medicine reviews, 21, 50–58. https://doi.org/10.1016/j.smrv.2014.07.007 
+  + [2]. Hiltunen P, Leppänen MH, Ray C, Määttä S, Vepsäläinen H, Koivusilta L, Sajaniemi N, Erkkola M, Roos E. Relationship between screen time and sleep among Finnish preschool  
+
 
    
