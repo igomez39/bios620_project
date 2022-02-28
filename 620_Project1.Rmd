@@ -2,11 +2,29 @@
 title: "Project I: BIOTAT 620W2022"
 author: "Team Hot Pot: Xueting Tao, Isabel Gomez"
 date: "2/14/2022"
+header-includes:
+  - \usepackage{placeins}
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, error = FALSE, warning = FALSE)
+knitr::knit_hooks$set(plot = function (x, options) {
+  float_correct <- function(f, y, opts)  {
+    if (is.null(opts$regfloat) || opts$regfloat==FALSE)
+      paste0(f(y, opts), "\n\n\\FloatBarrier\n")
+    else
+      f(y, opts)
+  }
+  if (!is.null(options$out.width) || !is.null(options$out.height) ||
+      !is.null(options$out.extra) || options$fig.align != "default" ||
+      !is.null(options$fig.subcap)) {
+    if (is.null(options$fig.scap))
+      options$fig.scap = NA
+    return(float_correct(knitr:::hook_plot_tex, x, options))
+  }
+  return(float_correct(knitr:::hook_plot_md_base, x, options))
+})
 library(readxl)
 library(lubridate)
 library(dplyr)
@@ -243,7 +261,7 @@ first.pickup.cir.isgomez = circular(screen_data_isgomez$Pickup.1st.angular, unit
 
 
 Figure 2 shows the first pick-up time for each member, along with the average of all the participants together. From this figure we can see that the most popular pickup time is around 7:30am. Whereas if we look at the individual pickup time, isgomez has a more variable pickup time with the earliest being at 8:30am and xuetao has a more consolidated pickup time around 7:30am. 
-```{r, results = "hide"}
+```{r, results = "hide", regfloat = FALSE}
 
 plot(first.pickup.cir.hotpot, stack=TRUE, bins=24, col = "blue")
 plot(first.pickup.cir.isgomez, stack=TRUE, bins=24, col = "blue")
